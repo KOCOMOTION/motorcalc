@@ -14,10 +14,10 @@ APP_VERSION = "0.2"
 class CDCMotor :
     def __init__(self,**kwargs):
         self.U_N = 0.0              # nominal Voltage in V
-        self.I_0 = 0.0             # no load current in A
-        self.k_M = 0.0             # torque constant in Nm/A
-        self.R = 0.0                 # terminal resistance in Ohms
-        self.nPoints = 100           # number of points to be plotted in graph
+        self.I_0 = 0.0              # no load current in A
+        self.k_M = 0.0              # torque constant in Nm/A
+        self.R = 0.0                # terminal resistance in Ohms
+        self.nPoints = 100          # number of points to be plotted in graph
         self.n_WP = 0.0             # required speed at working point
         self.M_WP = 0.0             # required torque at working point
         self.motor_name = ''        # motor name for text field in plot
