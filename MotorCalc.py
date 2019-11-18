@@ -1,6 +1,6 @@
 ## Motorcalculation Software
 ## Gerrit Kocherscheidt, KOCO automotive GmbH
-## Date 8-Sep-2019
+## Date 05-Nov-2019
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -150,13 +150,18 @@ class CDCMotor :
         print('value\t\t{:0.1f}\t\t{:0.2f}\t\t{:0.3f}\t\t{:0.0f}\t\t{:0.3f}'.format(self.U_N,self.R,self.I_0,self.n_0,self.k_M))
         print('')
         print('motor performance data:')
-        print('parameter\tunit\tno-load\t\t@max eff.\t@max power\tstall')
-        print('speed\t\tRPM\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}'.format(self.n_0, self.n_meff, self.calc_n_from_M(self.M_maxpower),0))
-        print('current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format(self.I_0, self.I_meff, self.calc_I_from_M(self.M_maxpower),self.I_S))
-        print('torque\t\tNm\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format(self.M_0, self.M_meff, self.M_maxpower,self.M_S))
-        print('power\t\tW\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}'.format(0, self.P_meff, self.P_maxpower,0))
-        print('eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}'.format(0, self.eta_max*100.0, \
-            self.calc_eta_from_M(self.M_maxpower)*100.0,0.0))
+        print('parameter\tunit\tno-load\t\t@max eff.\t@max power\tstall\t@working point')
+        print('speed\t\tRPM\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}'.format( \
+            self.n_0, self.n_meff, self.calc_n_from_M(self.M_maxpower), 0, self.calc_n_from_M(self.M_WP)))
+        print('current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format( \
+            self.I_0, self.I_meff, self.calc_I_from_M(self.M_maxpower), self.I_S, self.calc_I_from_M(self.M_WP)))
+        print('torque\t\tNm\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format( \
+            self.M_0, self.M_meff, self.M_maxpower, self.M_S, self.M_WP))
+        print('power\t\tW\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}'.format( \
+            0, self.P_meff, self.P_maxpower, 0, self.calc_P_mech_from_M(self.M_WP)))
+        print('eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}'.format(0, self.eta_max*100.0, \
+            self.calc_eta_from_M(self.M_maxpower)*100.0, 0.0, self.calc_eta_from_M(self.M_WP)*100.0))
+        print('')
 
     def export_to_excel(self):
         exWB = Workbook()
@@ -227,9 +232,11 @@ class CDCMotor :
 
 
     def plotCurves(self, addVoltagesSpeed=None):
-        plt.figure(figsize=(12,8))
+        fig=plt.figure(figsize=(12,8))
+        fig.patch.set_facecolor('white')
         host = plt.subplot(111)
         host.set_title(self.application)
+        host.patch.set_facecolor('white')
 
         #generate host plot
         plt.subplots_adjust(right=0.75)
@@ -251,6 +258,7 @@ class CDCMotor :
         
 
         ax_power=host.twinx()
+        ax_power.patch.set_facecolor('white')
         ax_power.plot(self.M*1000.0,self.P_mech,".-",color="black")
         ax_power.plot(1000.0*self.M_meff,self.P_meff,"d",color="red")
         ax_power.plot(1000.0*self.M_maxpower,self.P_maxpower,"d",color="red")
@@ -266,6 +274,7 @@ class CDCMotor :
         ax_power.set_ylim(0,)
 
         ax_eta=host.twinx()
+        ax_eta.patch.set_facecolor('white')
         ax_eta.plot(self.M*1000.0,self.eta*100.0,color="green")
         ax_eta.plot(self.M_meff*1000.0,self.eta_max*100.0,"d",color="red")
         ax_eta.spines["right"].set_position(("outward",120))
@@ -279,6 +288,7 @@ class CDCMotor :
         ax_eta.set_ylim(0,100)
         
         ax_speed=host.twinx()
+        ax_speed.patch.set_facecolor('white')
         ax_speed.plot(self.M*1000.0,self.n,color="blue")
         if self.n_WP != 0 and self.M_WP != 0:
             ax_speed.plot(1000.0*self.M_WP,self.n_WP,"o",markerfacecolor="white",markeredgecolor="blue",markersize=7)
