@@ -19,7 +19,7 @@ class CDCMotor :
         self.k_M = 0.0              # torque constant in Nm/A
         self.R = 0.0                # terminal resistance in Ohms
         self.H = 0.0                # terminal inductance in mH
-        self.Theta = 0.0            # rotor inertia in gcm^2
+        self.J = 0.0                # rotor inertia in gcm^2
         self.nPoints = 100          # number of points to be plotted in graph
         self.n_WP = 0.0             # required speed at working point
         self.M_WP = 0.0             # required torque at working point
@@ -37,7 +37,7 @@ class CDCMotor :
             if key=="k_M" : self.k_M = value
             if key=="R" : self.R = value
             if key=="H" : self.H = value
-            if key=="Theta": self.Theta = value
+            if key=="J": self.Theta = value
             if key=="M_WP" : self.M_WP = value
             if key=="n_WP" : self.n_WP = value
             if key=="motor_name" : self.motor_name = value
@@ -182,7 +182,7 @@ class CDCMotor :
         t.add_row([9, "Max. output power", "W", self.P_maxpower])        
         t.add_row([10, "Max. efficiency", "%", self.eta_max])
         t.add_row([11, "Back-EMF constant", "mV/rpm", self.k_M/9.81*1000.0])
-        t.add_row([12, "Torque constant", "mNm/A", self.k_M])
+        t.add_row([12, "Torque constant", "mNm/A", 1000*self.k_M])
         t.add_row([13, "Speed/torque gradient", "rpm/mNm", self.n_0/self.M_S/1000.0])
         t.add_row([14, "Rotor inertia", "gcm^2", self.Theta])
         # 15 Weight g 21
