@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import datetime
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
+from texttable import Texttable
 
 APP_NAME = "MotorCalc.py"
 APP_VERSION = "0.2"
@@ -17,6 +18,8 @@ class CDCMotor :
         self.I_0 = 0.0              # no load current in A
         self.k_M = 0.0              # torque constant in Nm/A
         self.R = 0.0                # terminal resistance in Ohms
+        self.H = 0.0                # terminal inductance in mH
+        self.Theta = 0.0            # rotor inertia in gcm^2
         self.nPoints = 100          # number of points to be plotted in graph
         self.n_WP = 0.0             # required speed at working point
         self.M_WP = 0.0             # required torque at working point
@@ -33,6 +36,8 @@ class CDCMotor :
             if key=="I_0" : self.I_0 = value
             if key=="k_M" : self.k_M = value
             if key=="R" : self.R = value
+            if key=="H" : self.H = value
+            if key=="Theta": self.Theta = value
             if key=="M_WP" : self.M_WP = value
             if key=="n_WP" : self.n_WP = value
             if key=="motor_name" : self.motor_name = value
@@ -162,6 +167,42 @@ class CDCMotor :
         print('eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}'.format(0, self.eta_max*100.0, \
             self.calc_eta_from_M(self.M_maxpower)*100.0, 0.0, self.calc_eta_from_M(self.M_WP)*100.0))
         print('')
+
+    def list_spec_table(self):
+        t = Texttable()
+        t.add_row(["No","Parameter","Unit","Value"])
+        t.add_row([1,"Voltage","V",self.U_N])
+        t.add_row([2,"Terminal resistance","Ω",self.R])
+        t.add_row([3, "Terminal inductance", "mH", self.H])
+        t.add_row([4, "No-load speed", "rpm", int(self.n_0)])
+        t.add_row([5, "No-load current", "A", self.I_0])
+        t.add_row([6, "Nominal torque", "mNm", 1000.0*self.M_WP])
+        t.add_row([7, "Nominal speed", "rpm", int(self.n_WP)])
+        t.add_row([8, "Nominal current", "A", self.calc_I_from_M(self.M_WP)])
+        t.add_row([9, "Max. output power", "W", self.P_maxpower])        
+        t.add_row([10, "Max. efficiency", "%", self.eta_max])
+        t.add_row([11, "Back-EMF constant", "mV/rpm", self.k_M/9.81*1000.0])
+        t.add_row([12, "Torque constant", "mNm/A", self.k_M])
+        t.add_row([13, "Speed/torque gradient", "rpm/mNm", self.n_0/self.M_S/1000.0])
+        t.add_row([14, "Rotor inertia", "gcm^2", self.Theta])
+        # 15 Weight g 21
+        # 16 Thermal resistance housing-ambient K/W 8
+        # 17 Thermal resistance winding-housing K/W 9.5
+        # 18 Thermal time constant motor s 354
+        # 19 Thermal time constant winding s 23
+        # 20 Operating temperature range °C -40 ~ +120
+        # 21 Thermal class of winding °C 155
+        # 22 Axial play mm 0.012
+        # 23 Radial play mm 0.08
+        # 24 Axial load dynamic N 1.5
+        # 25 Axial load static N 37
+        # 26 Radial load at 3 mm from mounting face N 12
+        # 27 No. of pole pairs 4
+        # 28 Bearings 2 ball bearings
+        # 29 Commutation Sensorless
+        # 30 Protection class IP 20
+        print(t.draw())
+
 
     def export_to_excel(self):
         exWB = Workbook()
@@ -501,12 +542,13 @@ if __name__ == "__main__":
     I_0 = 0.13*6/U_N
     n_WP = 300
     M_WP = 0.005
-    dcmotor=CDCMotor(U_N=U_N, I_0=I_0, k_M=k_M, R=R, n_WP=n_WP, M_WP=M_WP, application="166_A / LiDAR", motor_name="BO2015_Version 10V")
+    dcmotor=CDCMotor(U_N=U_N, I_0=I_0, k_M=k_M, R=R, H=0.61, Theta=6.7, n_WP=n_WP, M_WP=M_WP, application="166_A / LiDAR", motor_name="BO2015_Version 10V")
     dcmotor.print_parameter()
     dcmotor.tune_voltage_to_working_point()
     dcmotor.print_parameter()
     # dcmotor.plotCurves(addVoltagesSpeed=[3,4,5,6])
-    dcmotor.plotCurves()
+    # dcmotor.plotCurves()
+    dcmotor.list_spec_table()
  
     # GB_eta=0.8
     # GB_ratio=100
