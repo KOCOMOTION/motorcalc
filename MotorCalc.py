@@ -177,7 +177,7 @@ class CDCMotor :
         t.add_row([4, "No-load speed", "rpm", int(self.n_0)])
         t.add_row([5, "No-load current", "A", self.I_0])
         t.add_row([6, "Nominal torque", "mNm", 1000.0*self.M_WP])
-        t.add_row([7, "Nominal speed", "rpm", int(self.n_WP)])
+        t.add_row([7, "Nominal speed", "rpm", int(self.calc_n_from_M(self.M_WP))])
         t.add_row([8, "Nominal current", "A", self.calc_I_from_M(self.M_WP)])
         t.add_row([9, "Max. output power", "W", self.P_maxpower])        
         t.add_row([10, "Max. efficiency", "%", self.eta_max])
