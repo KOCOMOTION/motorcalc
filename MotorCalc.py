@@ -1,6 +1,6 @@
 ## Motorcalculation Software
 ## Gerrit Kocherscheidt, KOCO automotive GmbH
-## Date 05-Nov-2019
+## Date 28-Jul-2020
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,83 +10,178 @@ from openpyxl.styles import Font
 from texttable import Texttable
 
 APP_NAME = "MotorCalc.py"
-APP_VERSION = "0.2"
+APP_VERSION = "0.3"
 
 class CDCMotor :
-    def __init__(self,**kwargs):
-        self.U_N = 0.0              # nominal Voltage in V
-        self.I_0 = 0.0              # no load current in A
-        self.k_M = 0.0              # torque constant in Nm/A
-        self.R = 0.0                # terminal resistance in Ohms
-        self.H = 0.0                # terminal inductance in mH
-        self.J = 0.0                # rotor inertia in gcm^2
-        self.nPoints = 100          # number of points to be plotted in graph
-        self.n_WP = 0.0             # required speed at working point
-        self.M_WP = 0.0             # required torque at working point
-        self.motor_name = ''        # motor name for text field in plot
-        self.application = ''       # name of application for title
-        self.file_name = ''
+    """
+    A class used to represent a DC Motor for calculation
 
-        self.set_key_values(**kwargs)
+    ...
 
-        
-    def set_key_values(self,**kwargs):
-        for key, value in kwargs.items():
-            if key=="U_N" : self.U_N = value
-            if key=="I_0" : self.I_0 = value
-            if key=="k_M" : self.k_M = value
-            if key=="R" : self.R = value
-            if key=="H" : self.H = value
-            if key=="J": self.Theta = value
-            if key=="M_WP" : self.M_WP = value
-            if key=="n_WP" : self.n_WP = value
-            if key=="motor_name" : self.motor_name = value
-            if key=="application" : self.application = value
-            if key=="file_name" : self.file_name = value
+    Attributes
+    ----------
+    U_N : float
+        nominal Voltage in V
+    I_0 : float
+        noload current in A
+    k_M : float
+        torque constant in Nm/A
+    R : float
+        terminal resistance in Ohm
+    H : float
+        terminal inductance in mH (for information only)
+    Theta : float
+        rotor moment of inertia in gcm^2 (for information only)
+    nPoints : int
+        number of points to be plotted in graph
+    n_WP : float
+        required speed at working point
+    M_WP : float
+        required torque at working point
+    motor_name : str
+        name of the motor used for graph plotting
+    application : str
+        short description of application for graph plotting
+    file_name : str
+        name of Excel file for report generation
+    
+
+    Methods
+    -------
+    calc_motor_values()
+        Calculates the motor performance curves for a given set of parameter
+    """
+    def __init__(self, U_N:float=0.0, I_0:float=0.0, k_M:float=0.0, R:float=0.0, H:float=0.0, Theta:float=0.0, \
+        nPoints:int=100, n_WP:float=0.0, M_WP:float=0.0, motor_name:str='', application:str='', file_name:str='output.xlsx'):
+        """
+        Parameters
+        ----------
+        U_N : float
+            nominal Voltage in V
+        I_0 : float
+            noload current in A
+        k_M : float
+            torque constant in Nm/A
+        R : float
+            terminal resistance in Ohm
+        H : float
+            terminal inductance in mH (for information only)
+        Theta : float
+            rotor moment of inertia in gcm^2 (for information only)
+        nPoints : int
+            number of points to be plotted in graph
+        n_WP : float
+            required speed at working point
+        M_WP : float
+            required torque at working point
+        motor_name : str
+            name of the motor used for graph plotting
+        application : str
+            short description of application for graph plotting
+        file_name : str
+        name of Excel file for report generation
+        """
+        self.U_N = U_N                  # nominal Voltage in V
+        self.I_0 = I_0                  # no load current in A
+        self.k_M = k_M                  # torque constant in Nm/A
+        self.R = R                      # terminal resistance in Ohms
+        self.H = H                      # terminal inductance in mH
+        self.Theta = Theta              # rotor inertia in gcm^2 
+        self.nPoints = nPoints          # number of points to be plotted in graph
+        self.n_WP = n_WP                # required speed at working point
+        self.M_WP = M_WP                # required torque at working point
+        self.motor_name = motor_name    # motor name for text field in plot
+        self.application = application  # name of application for title
+        self.file_name = file_name      # name of file for excel export
         self.calc_motor_values()
 
-    def calc_I_from_M(self,M):
+    def calc_I_from_M(self, M:np.array)->np.array:
+        """
+        Calculates the current at a given torque value
+        
+        Parameters:
+        -----------
+        M : numpy.array
+            Array of torque values
+        """
         return((M+self.M_0)/self.k_M)
 
-    def calc_M_0(self):
+    def calc_M_0(self)->float:
+        """Calculates the no-load torque"""
         return(self.k_M*self.I_0)
 
-    def calc_I_S(self):
+    def calc_I_S(self)->float:
+        """Calculates the stall current"""
         return(self.U_N/self.R)
 
-    def calc_M_S(self):
+    def calc_M_S(self)->float:
+        """Calculates the stall torque"""
         return(self.k_M*(self.I_S-self.I_0))
 
-    def calc_n_from_M(self,M):
+    def calc_n_from_M(self, M:np.array)->np.array:
+        """
+        Calculates the speed for a given set of torque values
+        
+        Parameters:
+        -----------
+        M : numpy array
+            Array of torque values
+        """
         omega=self.b+self.a*(M+self.M_0)
         return(omega*30/np.pi)
 
-    def calc_M_from_n(self,n):
+    def calc_M_from_n(self, n:np.array)->np.array:
+        """
+        Calculates torque values for a given set of speed values
+        
+        Parameters:
+        -----------
+        n : numpy array
+            Array of speed values
+        """
         omega=n*np.pi/30
         return((omega-self.b)/self.a-self.M_0)
 
-    def calc_P_el_from_M(self,M):
+    def calc_P_el_from_M(self, M:np.array)->np.array:
+        """
+        Calculates electrical power values for a given set of torque values
+        
+        Parameters:
+        -----------
+        M : numpy array
+            Array of torque values
+        """
         return(self.b*(M+self.M_0))
 
-    def calc_P_mech_from_M(self,M):
+    def calc_P_mech_from_M(self, M:np.array)->np.array:
+        """
+        Calculates mechanical power values for a given set of torque values
+        
+        Parameters:
+        -----------
+        M : numpy array
+            Array of torque values
+        """
         return(M*self.b+self.a*M**2+self.a*M*self.M_0)
 
-    def calc_eta_from_M(self,M):
+    def calc_eta_from_M(self, M:np.array)->np.array:
+        """
+        Calculates efficiency values for a given set of torque values
+        
+        Parameters:
+        -----------
+        M : numpy array
+            Array of torque values
+        """
         c = 1/(M+self.M_0)
         frac=self.a/self.b
         return(c*(M+frac*M**2+frac*M*self.M_0))
 
-    def calc_k_M_and_R_max_from_omega_and_M(self,omega,M):
-        a=self.U_N/(2*omega)
-        R_max=self.U_N**2/(4*omega*(M+self.M_0))
-        if self.R>=R_max:
-            k_M=0
-        else:
-            k_M=a+np.sqrt(a**2-self.R/omega*(M+self.M_0))
-        return(k_M,R_max)
-        
 
     def calc_motor_values(self):
+        """
+        Calculates all values of the motor modell
+        """
         self.b = self.U_N/self.k_M
         self.a = -self.R/self.k_M**2
 
@@ -140,15 +235,30 @@ class CDCMotor :
         ## load speed (speed @ max efficiency)
         self.n_meff = (self.b+self.a*np.sqrt(self.M_S*self.M_0+self.M_0**2))*30/np.pi
 
-    def calc_torque_from_current(self,I):
+    def calc_torque_from_current(self, I:np.array)->np.array:
+        """
+        Calculates torque values for a given set of current values
+        
+        Parameters:
+        -----------
+        M : numpy array
+            Array of current values
+        """
         return(I*self.k_M)
 
     def tune_voltage_to_working_point(self):
+        """
+        Set the member variable value U_N to a value where the given member variable values n_WP (working point speed)
+        and M_WP (working point torque) will be met. 
+        """
         self.U_N=self.R*(self.M_WP+self.M_0)/self.k_M+self.k_M*self.n_WP*np.pi/30.0
         self.calc_motor_values()
 
 
     def print_parameter(self):
+        """
+        Prints a set of system values to the command line
+        """
         print('input parameter')
         print('parameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.')
         print('unit\t\tVolt\t\tOhm\t\tAmpere\t\tRPM\t\tNm/A')
@@ -169,6 +279,9 @@ class CDCMotor :
         print('')
 
     def list_spec_table(self):
+        """
+        Prints a specification table to the command line
+        """
         t = Texttable()
         t.add_row(["No","Parameter","Unit","Value"])
         t.add_row([1,"Voltage","V",self.U_N])
@@ -205,6 +318,9 @@ class CDCMotor :
 
 
     def export_to_excel(self):
+        """
+        Exports the results to excel. Uses the file name given in the member variable self.file_name
+        """
         exWB = Workbook()
         ws = exWB.active
         try:
@@ -272,7 +388,15 @@ class CDCMotor :
         return(row,col)
 
 
-    def plotCurves(self, addVoltagesSpeed=None):
+    def plotCurves(self, addVoltagesSpeed:list=None):
+        """
+        Plots system values into a matplotlib graph
+
+        Parameters:
+        -----------
+        addVoltagesSpeed : list of floats
+            List of additional voltages that are used to plot additional n-over-M-curves
+        """
         fig=plt.figure(figsize=(12,8))
         fig.patch.set_facecolor('white')
         host = plt.subplot(111)
@@ -545,7 +669,7 @@ if __name__ == "__main__":
     dcmotor=CDCMotor(U_N=U_N, I_0=I_0, k_M=k_M, R=R, H=0.61, Theta=6.7, n_WP=n_WP, M_WP=M_WP, application="166_A / LiDAR", motor_name="BO2015_Version 10V")
     dcmotor.print_parameter()
     dcmotor.tune_voltage_to_working_point()
-    dcmotor.print_parameter()
+    # dcmotor.print_parameter()
     # dcmotor.plotCurves(addVoltagesSpeed=[3,4,5,6])
     # dcmotor.plotCurves()
     dcmotor.list_spec_table()
