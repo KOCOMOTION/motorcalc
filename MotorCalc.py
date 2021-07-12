@@ -5,6 +5,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
+from numpy.core.arrayprint import _none_or_positive_arg
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 from texttable import Texttable
@@ -12,7 +13,7 @@ from texttable import Texttable
 APP_NAME = "MotorCalc.py"
 APP_VERSION = "0.3"
 
-class CDCMotor :
+class CDCMotor():
     """
     A class used to represent a DC Motor for calculation
 
@@ -491,20 +492,33 @@ class CDCMotor :
         
 
 class CDCMotorWithGearbox(CDCMotor):
-    def __init__(self,**kwargs):
-        super(CDCMotorWithGearbox, self).__init__(**kwargs)
-        self.M_WP_system = 0
-        self.n_WP_system = 0
-        self.GB_name = ''
-        self.set_key_values_system(**kwargs)
-
-    def set_key_values_system(self,**kwargs):
-        for key, value in kwargs.items():
-            if key=="GB_ratio" : self.GB_ratio = value
-            if key=="GB_eta" : self.GB_eta = value
-            if key=="M_WP_system" : self.M_WP_system = value
-            if key=="n_WP_system" : self.n_WP_system = value
-            if key=="GB_name" : self.GB_name = value
+    def __init__(
+            self,
+            U_N:float=0.0, 
+            I_0:float=0.0, 
+            k_M:float=0.0, 
+            R:float=0.0, 
+            H:float=0.0, 
+            Theta:float=0.0,
+            nPoints:int=100,
+            n_WP:float=0.0, 
+            M_WP:float=0.0, 
+            motor_name:str='', 
+            application:str='', 
+            file_name:str='output.xlsx',
+            GB_ratio:float=1.0,
+            GB_eta:float=0.7,
+            GB_name:str='Gearbox',
+            n_WP_system:float=0,
+            M_WP_system:float=0
+        ):
+        super(CDCMotorWithGearbox, self).__init__(U_N=U_N, I_0=I_0, k_M=k_M, R=R, H=H, Theta=Theta,
+            nPoints=nPoints, n_WP=n_WP, M_WP=M_WP, motor_name=motor_name, application=application, file_name=file_name)
+        self.M_WP_system = M_WP_system
+        self.n_WP_system = n_WP_system
+        self.GB_name = GB_name
+        self.GB_eta = GB_eta
+        self.GB_ratio = GB_ratio
         self.calc_system_values()
 
     def calc_system_values(self):
@@ -544,8 +558,8 @@ class CDCMotorWithGearbox(CDCMotor):
         print('system performance data:')
         print('parameter\tunit\tno-load\t\t@max eff.\t@max power\tstall')
         print('speed\t\tRPM\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}'.format(self.n_0_system, self.n_meff_system, self.n_maxpower_system, 0))
-        print('current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format(self.I_0*self.GB_eta\
-            , self.I_meff*self.GB_eta, self.calc_I_from_M(self.M_maxpower)*self.GB_eta,self.I_S*self.GB_eta))
+        print('current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format(self.I_0\
+            , self.I_meff, self.calc_I_from_M(self.M_maxpower),self.I_S))
         print('torque\t\tNm\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format(self.M_0_system, self.M_meff_system, self.M_maxpower_system, self.M_S_system))
         print('power\t\tW\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}'.format(0, self.P_meff_system, self.P_maxpower_system,0))
         print('eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}'.format(0, self.eta_max_system*100.0,\
@@ -579,7 +593,7 @@ class CDCMotorWithGearbox(CDCMotor):
         plt.subplots_adjust(right=0.75)
         plt.subplots_adjust(left=0.1)
         plt.subplots_adjust(bottom=0.10)
-        host.plot(self.M_system*1000.0,self.I*self.GB_eta,color="red")
+        host.plot(self.M_system*1000.0,self.I,color="red")
         host.plot([1000.0*self.M_meff_system,1000.0*self.M_meff_system],[0.0, 1.2*self.I_S],":",color="black")
         host.plot([1000.0*self.M_maxpower_system,1000.0*self.M_maxpower_system],[0.0, 1.2*self.I_S],":",color="black")
         if self.M_WP_system != 0:
@@ -591,7 +605,7 @@ class CDCMotorWithGearbox(CDCMotor):
         host.tick_params(axis="y", colors="red")
         host.grid(True)
         host.set_xlim(0,1000.0*self.M_S_system)
-        host.set_ylim(0,1.2*self.I_S*self.GB_eta)
+        host.set_ylim(0,1.2*self.I_S)
 
         
         ax_power=host.twinx()
