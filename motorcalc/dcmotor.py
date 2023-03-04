@@ -10,7 +10,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 from texttable import Texttable
 
-APP_NAME = "dmotor.py"
+APP_NAME = "dcmotor.py"
 APP_VERSION = "1.0"
 
 class CDCMotor():
@@ -105,19 +105,19 @@ class CDCMotor():
         M : numpy.array
             Array of torque values
         """
-        return((M+self.M_0)/self.k_M)
+        return (M+self.M_0)/self.k_M
 
     def calc_M_0(self)->float:
         """Calculates the no-load torque"""
-        return(self.k_M*self.I_0)
+        return self.k_M*self.I_0
 
     def calc_I_S(self)->float:
         """Calculates the stall current"""
-        return(self.U_N/self.R)
+        return self.U_N/self.R
 
     def calc_M_S(self)->float:
         """Calculates the stall torque"""
-        return(self.k_M*(self.I_S-self.I_0))
+        return self.k_M*(self.I_S-self.I_0)
 
     def calc_n_from_M(self, M:np.array)->np.array:
         """
@@ -129,7 +129,20 @@ class CDCMotor():
             Array of torque values
         """
         omega=self.b+self.a*(M+self.M_0)
-        return(omega*30/np.pi)
+        return omega*30/np.pi 
+
+    def calc_M_from_omega(self, omega:np.array)->np.array:
+        """
+        Calculates torque values for a given set of speed values
+        
+        Parameters:
+        -----------
+        omega : numpy array
+            Array of angular speed values
+        """
+        M = (omega-self.b)/self.a-self.M_0
+        return M
+
 
     def calc_M_from_n(self, n:np.array)->np.array:
         """
@@ -141,7 +154,8 @@ class CDCMotor():
             Array of speed values
         """
         omega=n*np.pi/30
-        return((omega-self.b)/self.a-self.M_0)
+        return self.calc_M_from_omega(omega=omega)
+
 
     def calc_P_el_from_M(self, M:np.array)->np.array:
         """
@@ -152,7 +166,7 @@ class CDCMotor():
         M : numpy array
             Array of torque values
         """
-        return(self.b*(M+self.M_0))
+        return self.b*(M+self.M_0)
 
     def calc_P_mech_from_M(self, M:np.array)->np.array:
         """
@@ -163,7 +177,7 @@ class CDCMotor():
         M : numpy array
             Array of torque values
         """
-        return(M*self.b+self.a*M**2+self.a*M*self.M_0)
+        return M*self.b+self.a*M**2+self.a*M*self.M_0
 
     def calc_eta_from_M(self, M:np.array)->np.array:
         """
@@ -176,7 +190,7 @@ class CDCMotor():
         """
         c = 1/(M+self.M_0)
         frac=self.a/self.b
-        return(c*(M+frac*M**2+frac*M*self.M_0))
+        return c*(M+frac*M**2+frac*M*self.M_0)
 
 
     def calc_motor_values(self):
@@ -245,7 +259,7 @@ class CDCMotor():
         M : numpy array
             Array of current values
         """
-        return(I*self.k_M)
+        return I*self.k_M 
 
     def tune_voltage_to_working_point(self):
         """
@@ -294,7 +308,7 @@ class CDCMotor():
         t.add_row([7, "Nominal speed", "rpm", int(self.calc_n_from_M(self.M_WP))])
         t.add_row([8, "Nominal current", "A", self.calc_I_from_M(self.M_WP)])
         t.add_row([9, "Max. output power", "W", self.P_maxpower])        
-        t.add_row([10, "Max. efficiency", "%", self.eta_max])
+        t.add_row([10, "Max. efficiency", "%", self.eta_max*100.0])
         t.add_row([11, "Back-EMF constant", "mV/rpm", self.k_M/9.81*1000.0])
         t.add_row([12, "Torque constant", "mNm/A", 1000*self.k_M])
         t.add_row([13, "Speed/torque gradient", "rpm/mNm", self.n_0/self.M_S/1000.0])
@@ -386,7 +400,7 @@ class CDCMotor():
                 col+=1
             row += 1
             col = 1
-        return(row,col)
+        return row,col 
 
 
     def plotCurves(self, addVoltagesSpeed:list[float]=None):
