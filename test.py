@@ -25,11 +25,9 @@ def integrate_omega_alpha(
     dalpha_dt = lambda omega:omega
     for ix,_ in enumerate(t):
         if ix==0:
-            # ww, aa = integration_step(motor=m, theta=theta/reduction_ratio, w_act=w_0, alpha_act=alpha_0, loss_torque=loss_torque, dt=dt)
             ww = integration_step(func=dw_dt, old_val=w_0, dt=dt ,kwargs={"motor":m, "theta":theta/reduction_ratio, "w_act":w_0, "loss_torque":loss_torque})
             aa = integration_step(func=dalpha_dt, old_val=alpha_0, dt=dt, kwargs={"omega":w_0})
         else:
-            # ww, aa = integration_step(motor=m, theta=theta/reduction_ratio, w_act=w[ix-1], alpha_act=a[ix-1], loss_torque=loss_torque, dt=dt)
             ww = integration_step(func=dw_dt, old_val=w[ix-1], dt=dt ,kwargs={"motor":m, "theta":theta/reduction_ratio, "w_act":w[ix-1], "loss_torque":loss_torque})
             # d\alpha/dt = omega -> use a lamda function that takes omega as input und returns omega
             aa = integration_step(func=dalpha_dt, old_val=a[ix-1], dt=dt, kwargs={"omega":w[ix-1]})
@@ -113,7 +111,7 @@ def calc_motor_schulung():
     M = m.calc_M_from_omega(w)
     I = m.calc_I_from_M(M)
 
-    plot_data(t, w, a, E, I, reduction_ratio=42)
+    plot_data(t, w, a, E, I, reduction_ratio=reduction_ratio)
 
     
 if __name__=="__main__":
