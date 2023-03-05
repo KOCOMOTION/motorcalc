@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def integration_step(func:callable, old_val:float = 0.0, dt:float = 1.0E-3, kwargs: dict = None):
+    """Calculate a simple first order integration of function func with keyword args kwargs"""
     return old_val + func(**kwargs)*dt
     
 def integrate_omega_alpha(
@@ -16,9 +17,12 @@ def integrate_omega_alpha(
     t_stop: float=3.0, 
     dt: float=0.1
 ):
+    """Perfom the integration to calculate omega and alpha. Return value alpha is for the SWINGgate. Return value omega refers to the motor"""
     t=np.arange(t_start, t_stop, dt, dtype=np.float32)
     w=np.zeros(t.shape,dtype=np.float32)
     a=np.zeros(t.shape,dtype=np.float32)
+    # d\alpha/dt = omega -> use a lamda function that takes omega as input und returns omega
+    dalpha_dt = lambda omega:omega
     for ix,_ in enumerate(t):
         if ix==0:
             # ww, aa = integration_step(motor=m, theta=theta/reduction_ratio, w_act=w_0, alpha_act=alpha_0, loss_torque=loss_torque, dt=dt)
@@ -27,6 +31,7 @@ def integrate_omega_alpha(
         else:
             # ww, aa = integration_step(motor=m, theta=theta/reduction_ratio, w_act=w[ix-1], alpha_act=a[ix-1], loss_torque=loss_torque, dt=dt)
             ww = integration_step(func=dw_dt, old_val=w[ix-1], dt=dt ,kwargs={"motor":m, "theta":theta/reduction_ratio, "w_act":w[ix-1], "loss_torque":loss_torque})
+            # d\alpha/dt = omega -> use a lamda function that takes omega as input und returns omega
             aa = integration_step(func=dalpha_dt, old_val=a[ix-1], dt=dt, kwargs={"omega":w[ix-1]})
         w[ix]=ww
         a[ix]=aa
@@ -79,12 +84,6 @@ def dw_dt(
     if res<0:
         res=0
     return res
-
-def dalpha_dt(
-        omega: float = None,
-) -> float:
-    """Calculate the angular speed d\alpha/dt [rad/s]"""
-    return omega
 
 def E_rot(
         theta: float = None,
