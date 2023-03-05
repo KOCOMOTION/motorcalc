@@ -2,36 +2,36 @@ from motorcalc.dcmotor import CDCMotor
 import numpy as np
 import matplotlib.pyplot as plt
 
-def calc_motor_schulung():
-    # m=CDCMotor(U_N=24, I_0=1, k_M=0.0643, R=0.085)
-    # m.list_spec_table()
-    # m.plotCurves()
-
-    m=CDCMotor(U_N=24, I_0=0.080, k_M=0.55, R=7)
-    # m.list_spec_table()
-    # m.plotCurves()
-
-    dt=1.0E-4       # time step for integration [s]
-    w_0=0.0         # initial speed
-    alpha_0=0.0     # inital angular position
-    t=np.arange(0.0, 3.0, dt, dtype=np.float32)
+def integration_step(func:callable, old_val:float = 0.0, dt:float = 1.0E-3, kwargs: dict = None):
+    return old_val + func(**kwargs)*dt
+    
+def integrate_omega_alpha(
+    m: CDCMotor, 
+    w_0: float=0.0, 
+    alpha_0: float=0.0, 
+    theta: float=1.0,
+    reduction_ratio: float=1.0,
+    loss_torque: float=0.0,
+    t_start: float=0.0, 
+    t_stop: float=3.0, 
+    dt: float=0.1
+):
+    t=np.arange(t_start, t_stop, dt, dtype=np.float32)
     w=np.zeros(t.shape,dtype=np.float32)
     a=np.zeros(t.shape,dtype=np.float32)
-    theta=0.6
-    reduction_ratio=42
-    loss_torque = 0.2
     for ix,_ in enumerate(t):
         if ix==0:
-            ww, aa = integration_step(motor=m, theta=theta/reduction_ratio, w_act=w_0, alpha_act=alpha_0, loss_torque=loss_torque, dt=dt)
+            # ww, aa = integration_step(motor=m, theta=theta/reduction_ratio, w_act=w_0, alpha_act=alpha_0, loss_torque=loss_torque, dt=dt)
+            ww = integration_step(func=dw_dt, old_val=w_0, dt=dt ,kwargs={"motor":m, "theta":theta/reduction_ratio, "w_act":w_0, "loss_torque":loss_torque})
+            aa = integration_step(func=dalpha_dt, old_val=alpha_0, dt=dt, kwargs={"omega":w_0})
         else:
-            ww, aa = integration_step(motor=m, theta=theta/reduction_ratio, w_act=w[ix-1], alpha_act=a[ix-1], loss_torque=loss_torque, dt=dt)
+            # ww, aa = integration_step(motor=m, theta=theta/reduction_ratio, w_act=w[ix-1], alpha_act=a[ix-1], loss_torque=loss_torque, dt=dt)
+            ww = integration_step(func=dw_dt, old_val=w[ix-1], dt=dt ,kwargs={"motor":m, "theta":theta/reduction_ratio, "w_act":w[ix-1], "loss_torque":loss_torque})
+            aa = integration_step(func=dalpha_dt, old_val=a[ix-1], dt=dt, kwargs={"omega":w[ix-1]})
         w[ix]=ww
         a[ix]=aa
-    E = E_rot(theta=theta, w_act=w/reduction_ratio)
-    M = m.calc_M_from_omega(w)
-    I = m.calc_I_from_M(M)
+    return t, w, a
 
-    plot_data(t, w, a, E, I, reduction_ratio=42)
 
 def plot_data(t: np.array, w:np.array, a:np.array, E:np.array, I: np.array, reduction_ratio: float = 42):
     plt.rcParams.update({
@@ -71,15 +71,20 @@ def dw_dt(
         theta:float = None, 
         w_act: float = None,
         loss_torque: float = 0.0,
-
 ) -> float:
-    """Calculate the angular acceleration d\omega/dt [rad/^2]"""
+    """Calculate the angular acceleration d\omega/dt [rad/s^2]"""
     if not motor or theta==None or w_act==None:
         return None
-    res = (motor.calc_M_from_n(n=w_act*30.0/np.pi) - loss_torque)/ theta
+    res = (motor.calc_M_from_omega(omega=w_act) - loss_torque)/ theta
     if res<0:
         res=0
     return res
+
+def dalpha_dt(
+        omega: float = None,
+) -> float:
+    """Calculate the angular speed d\alpha/dt [rad/s]"""
+    return omega
 
 def E_rot(
         theta: float = None,
@@ -88,31 +93,29 @@ def E_rot(
     """Calucate the rotational kinetic energy of an object with angular speed w_act and moment of inertia theta"""
     return 0.5*theta*w_act**2
 
-def integration_step(
-        motor: CDCMotor = None, 
-        theta: float = None, 
-        w_act: float = None,
-        alpha_act: float = None,
-        loss_torque: float = 0.0,
-        dt: float = 1.0E-3,
-    ):
-    if not motor:
-        return None
-    if theta==None:
-        return None
-    if w_act==None:
-        return None
-    if alpha_act==None:
-        return None
-    w_new = w_act + dw_dt(motor=motor, theta=theta, w_act=w_act, loss_torque=loss_torque)*dt
-    alpha_new = alpha_act + w_act*dt
-    return (w_new, alpha_new)
-    
-    
 
+def calc_motor_schulung():
+    m=CDCMotor(U_N=24, I_0=0.080, k_M=0.55, R=7)
+    # m.list_spec_table()
+    # m.plotCurves()
 
+    dt=1.0E-1       # time step for integration [s]
+    w_0=0.0         # initial speed
+    alpha_0=0.0     # inital angular position
+    theta=0.6
+    reduction_ratio=42
+    loss_torque = 0.2
 
-    
+    t, w, a =  integrate_omega_alpha(m=m, w_0=w_0, alpha_0=alpha_0, theta=theta, \
+                reduction_ratio=reduction_ratio, loss_torque=loss_torque, \
+                t_start=0.0, t_stop=3.0, dt=dt)
+
+    E = E_rot(theta=theta, w_act=w/reduction_ratio)
+    M = m.calc_M_from_omega(w)
+    I = m.calc_I_from_M(M)
+
+    plot_data(t, w, a, E, I, reduction_ratio=42)
+
     
 if __name__=="__main__":
     """
