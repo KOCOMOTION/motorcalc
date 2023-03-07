@@ -92,7 +92,7 @@ def E_rot(
 
 
 def calc_motor_schulung():
-    m=CDCMotor(U_N=24, I_0=0.080, k_M=0.55, R=7)
+    m=CDCMotor(U_N=24, I_0=0.120, k_M=0.55, R=7)
     # m.list_spec_table()
     # m.plotCurves()
 
@@ -101,7 +101,7 @@ def calc_motor_schulung():
     alpha_0=0.0     # inital angular position
     theta=0.6
     reduction_ratio=42
-    loss_torque = 0.2
+    loss_torque = 0.0
 
     t, w, a =  integrate_omega_alpha(m=m, w_0=w_0, alpha_0=alpha_0, theta=theta, \
                 reduction_ratio=reduction_ratio, loss_torque=loss_torque, \
