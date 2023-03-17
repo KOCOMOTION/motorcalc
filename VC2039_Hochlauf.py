@@ -37,10 +37,6 @@ def integrate_omega_alpha(
 
 
 def plot_data(t: np.array, w:np.array, a:np.array, E:np.array, I: np.array, reduction_ratio: float = 1):
-    plt.rcParams.update({
-        "text.usetex": True,
-        "font.family": "Helvetica",        
-    })
     fig = plt.figure(figsize=(10,10))
     ax1=fig.add_subplot(2,2,1)
     ax1.plot(t, w*30/np.pi)
