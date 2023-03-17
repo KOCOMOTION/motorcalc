@@ -36,7 +36,7 @@ def integrate_omega_alpha(
     return t, w, a
 
 
-def plot_data(t: np.array, w:np.array, a:np.array, E:np.array, I: np.array, reduction_ratio: float = 42):
+def plot_data(t: np.array, w:np.array, a:np.array, E:np.array, I: np.array, reduction_ratio: float = 1):
     plt.rcParams.update({
         "text.usetex": True,
         "font.family": "Helvetica",        
@@ -52,13 +52,13 @@ def plot_data(t: np.array, w:np.array, a:np.array, E:np.array, I: np.array, redu
     ax2.set_xlabel(r'time (s)')
     ax2.set_ylabel(r'$\alpha$ (°)')
     ax2.grid(True)
-    ax2.set_title(r'angle of gate', loc='Left')
+    ax2.set_title(r'rotation angle', loc='Left')
     ax2.plot(t,a/reduction_ratio/np.pi*180)
     ax3=fig.add_subplot(2,2,3)
     ax3.set_xlabel(r'time (s)')
     ax3.set_ylabel(r'kinetic energy (J)')
     ax3.grid(True)
-    ax3.set_title(r'kinetic energy of gate', loc='Left')
+    ax3.set_title(r'kinetic energy of motor', loc='Left')
     ax3.plot(t,E)
     ax4=fig.add_subplot(2,2,4)
     ax4.set_xlabel(r'time (s)')
@@ -91,16 +91,16 @@ def E_rot(
     return 0.5*theta*w_act**2
 
 
-def calc_motor_schulung():
-    m=CDCMotor(U_N=24, I_0=0.120, k_M=0.55, R=7)
+def calc_VC2039():
+    m=CDCMotor(U_N=12, I_0=0.03, k_M=0.015, R=5)
     # m.list_spec_table()
-    # m.plotCurves()
+    m.plotCurves()
 
     dt=1.0E-1       # time step for integration [s]
     w_0=0.0         # initial speed
     alpha_0=0.0     # inital angular position
-    theta=0.6
-    reduction_ratio=42
+    theta=0.0002
+    reduction_ratio=1
     loss_torque = 0.0
 
     t, w, a =  integrate_omega_alpha(m=m, w_0=w_0, alpha_0=alpha_0, theta=theta, \
@@ -118,4 +118,4 @@ if __name__=="__main__":
     """
     Hier werden alle Projekte eingehängt, und diese Datei wird für die Berechnung ausgeführt
     """
-    calc_motor_schulung()
+    calc_VC2039()
