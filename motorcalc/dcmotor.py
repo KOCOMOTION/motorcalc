@@ -13,6 +13,25 @@ from texttable import Texttable
 APP_NAME = "dcmotor.py"
 APP_VERSION = "1.0"
 
+def omega_to_speed_rpm(omega: np.array) -> np.array:
+    """convert angular speed in rad/s to rpm"""
+    return omega/np.pi*30
+
+def speed_rpm_to_omega(speed_rpm: np.array) -> np.array:
+    """convert rpm to angular speed in rad/s"""
+    return speed_rpm*np.pi/30
+
+def angle_to_number_of_rotations(angle: np.array) -> np.array:
+    """Convert an angular position in rad to number of rotations"""
+    return angle/(2*np.pi)
+
+def number_of_rotations_to_angle(number_rot: np.array, is_absolute: bool = True) -> np.array:
+    """Convert a given number of rotations to an angular positition in rad"""
+    angle = number_rot * 2 * np.pi
+    if is_absolute:
+        return angle
+    return np.mod(angle, 2*np.pi)
+
 class CDCMotor():
     """
     A class used to represent a DC Motor for calculation
@@ -129,7 +148,7 @@ class CDCMotor():
             Array of torque values
         """
         omega=self.b+self.a*(M+self.M_0)
-        return omega*30/np.pi 
+        return omega_to_speed_rpm(omega) 
 
     def calc_M_from_omega(self, omega:np.array)->np.array:
         """
@@ -153,7 +172,7 @@ class CDCMotor():
         n : numpy array
             Array of speed values
         """
-        omega=n*np.pi/30
+        omega=speed_rpm_to_omega(n)
         return self.calc_M_from_omega(omega=omega)
 
 
