@@ -29,10 +29,11 @@ def calc_imbalance_force(m: float, omega: float, r_cog: float):
 
 
 def calc_VC2039():
-    I_S = 1.5
+    I_S = 1.2
     U_nom = 12.5
     R = U_nom/I_S
-    m=dcm.CDCMotor(U_N=4, I_0=0.050, k_M=0.013, R=R)
+    m=dcm.CDCMotor(U_N=U_nom, I_0=0.055, k_M=0.011, R=R)
+    print(m)
     # m.list_spec_table()
     # m.plotCurves()
 

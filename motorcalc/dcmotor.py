@@ -32,6 +32,7 @@ def number_of_rotations_to_angle(number_rot: np.array, is_absolute: bool = True)
         return angle
     return np.mod(angle, 2*np.pi)
 
+        
 class CDCMotor():
     """
     A class used to represent a DC Motor for calculation
@@ -113,7 +114,7 @@ class CDCMotor():
         self.motor_name = motor_name    # motor name for text field in plot
         self.application = application  # name of application for title
         self.file_name = file_name      # name of file for excel export
-        self.calc_motor_values()
+        self.calc_scalar_parameter()    # calculates all other scalar motor parameter
 
     def calc_I_from_M(self, M:np.array)->np.array:
         """
@@ -211,10 +212,9 @@ class CDCMotor():
         frac=self.a/self.b
         return c*(M+frac*M**2+frac*M*self.M_0)
 
-
-    def calc_motor_values(self):
+    def calc_scalar_parameter(self):
         """
-        Calculates all values of the motor modell
+        Calculates all scalar motor parameter, to be stored in the class object.
         """
         self.b = self.U_N/self.k_M
         self.a = -self.R/self.k_M**2
@@ -228,27 +228,8 @@ class CDCMotor():
         ## stall torque in Nm
         self.M_S = self.calc_M_S()
 
-        ## torque range available (used for plotting)
-        self.M = np.linspace(0.0,self.M_S,self.nPoints,endpoint=True)
-
-        ## current curve over torque range
-        self.I = self.calc_I_from_M(self.M)
-
-        ## speed curve over torque range
-##        self.omega = (self.U_N-self.R*self.I)/self.k_M
-##
-##        self.n = self.omega*30/np.pi
-        self.n = self.calc_n_from_M(self.M)
-        self.n_0 = self.n[0]
-
-        ## electrical power over torque range
-        self.P_el = self.calc_P_el_from_M(self.M)
-
-        ## mechanical power over torque range
-        self.P_mech = self.calc_P_mech_from_M(self.M)
-
-        ## efficiency
-        self.eta = self.P_mech / self.P_el
+        ## no-load speed
+        self.n_0 = self.calc_n_from_M(0.0)
 
         ## torque @ max efficiency
         self.M_meff = self.M_0*(np.sqrt(self.M_S/self.M_0+1)-1)
@@ -286,31 +267,46 @@ class CDCMotor():
         and M_WP (working point torque) will be met. 
         """
         self.U_N=self.R*(self.M_WP+self.M_0)/self.k_M+self.k_M*self.n_WP*np.pi/30.0
-        self.calc_motor_values()
+        self.calc_scalar_parameter()
 
+    def parameter_txt(self) -> str:
+        """
+        Generates a string with motor parameter text
+        """
+        out_str=''
+        out_str+='INPUT PARAMETER:\n'
+        out_str+=self._dash_line()
+        out_str+='parameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.\n'
+        out_str+=self._dash_line()
+        out_str+='unit\t\tVolt\t\tOhm\t\tAmpere\t\tRPM\t\tNm/A\n'
+        out_str+='value\t\t{:0.1f}\t\t{:0.2f}\t\t{:0.3f}\t\t{:0.0f}\t\t{:0.3f}\n\n'.format(self.U_N,self.R,self.I_0,self.n_0,self.k_M)
+        out_str+='PERFORMANCE DATA:\n'
+        out_str+=self._dash_line()
+        out_str+='parameter\tunit\tno-load\t\t@max eff.\t@max power\tstall\t\t@working point\n'
+        out_str+=self._dash_line()
+        out_str+='speed\t\tRPM\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\n'.format( \
+            self.n_0, self.n_meff, self.calc_n_from_M(self.M_maxpower), 0, self.calc_n_from_M(self.M_WP))
+        out_str+='current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\n'.format( \
+            self.I_0, self.I_meff, self.calc_I_from_M(self.M_maxpower), self.I_S, self.calc_I_from_M(self.M_WP))
+        out_str+='torque\t\tNm\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\n'.format( \
+            self.M_0, self.M_meff, self.M_maxpower, self.M_S, self.M_WP)
+        out_str+='power\t\tW\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\n'.format( \
+            0, self.P_meff, self.P_maxpower, 0, self.calc_P_mech_from_M(self.M_WP))
+        out_str+='eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\n\n'.format(0, self.eta_max*100.0, \
+            self.calc_eta_from_M(self.M_maxpower)*100.0, 0.0, self.calc_eta_from_M(self.M_WP)*100.0)
+        return out_str
 
-    def print_parameter(self):
-        """
-        Prints a set of system values to the command line
-        """
-        print('input parameter')
-        print('parameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.')
-        print('unit\t\tVolt\t\tOhm\t\tAmpere\t\tRPM\t\tNm/A')
-        print('value\t\t{:0.1f}\t\t{:0.2f}\t\t{:0.3f}\t\t{:0.0f}\t\t{:0.3f}'.format(self.U_N,self.R,self.I_0,self.n_0,self.k_M))
-        print('')
-        print('motor performance data:')
-        print('parameter\tunit\tno-load\t\t@max eff.\t@max power\tstall\t@working point')
-        print('speed\t\tRPM\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}'.format( \
-            self.n_0, self.n_meff, self.calc_n_from_M(self.M_maxpower), 0, self.calc_n_from_M(self.M_WP)))
-        print('current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format( \
-            self.I_0, self.I_meff, self.calc_I_from_M(self.M_maxpower), self.I_S, self.calc_I_from_M(self.M_WP)))
-        print('torque\t\tNm\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format( \
-            self.M_0, self.M_meff, self.M_maxpower, self.M_S, self.M_WP))
-        print('power\t\tW\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}'.format( \
-            0, self.P_meff, self.P_maxpower, 0, self.calc_P_mech_from_M(self.M_WP)))
-        print('eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}'.format(0, self.eta_max*100.0, \
-            self.calc_eta_from_M(self.M_maxpower)*100.0, 0.0, self.calc_eta_from_M(self.M_WP)*100.0))
-        print('')
+    def _dash_line(self, length: int = 102, linebreak: bool = True):
+        dash_str=''
+        for _ in range(length):
+            dash_str += '-'
+        if not linebreak:
+            return dash_str
+        return dash_str + '\n'
+
+    def __str__(self):
+        return self.parameter_txt()
+
 
     def list_spec_table(self):
         """
@@ -431,6 +427,7 @@ class CDCMotor():
         addVoltagesSpeed : list of floats
             List of additional voltages that are used to plot additional n-over-M-curves
         """
+        pc = CPerformanceCurves(self)
         fig=plt.figure(figsize=(12,8))
         fig.patch.set_facecolor('white')
         host = plt.subplot(111)
@@ -441,7 +438,7 @@ class CDCMotor():
         plt.subplots_adjust(right=0.75)
         plt.subplots_adjust(left=0.1)
         plt.subplots_adjust(bottom=0.10)
-        host.plot(self.M*1000.0,self.I,color="red")
+        host.plot(pc.M*1000.0,pc.I,color="red")
         host.plot([1000.0*self.M_meff,1000.0*self.M_meff],[0.0, 1.2*self.I_S],":",color="black")
         host.plot([1000.0*self.M_maxpower,1000.0*self.M_maxpower],[0.0, 1.2*self.I_S],":",color="black")
         if self.M_WP != 0:
@@ -458,7 +455,7 @@ class CDCMotor():
 
         ax_power=host.twinx()
         ax_power.patch.set_facecolor('white')
-        ax_power.plot(self.M*1000.0,self.P_mech,".-",color="black")
+        ax_power.plot(pc.M*1000.0,pc.P_mech,".-",color="black")
         ax_power.plot(1000.0*self.M_meff,self.P_meff,"d",color="red")
         ax_power.plot(1000.0*self.M_maxpower,self.P_maxpower,"d",color="red")
         if self.M_WP != 0 and self.n_WP != 0:
@@ -474,7 +471,7 @@ class CDCMotor():
 
         ax_eta=host.twinx()
         ax_eta.patch.set_facecolor('white')
-        ax_eta.plot(self.M*1000.0,self.eta*100.0,color="green")
+        ax_eta.plot(pc.M*1000.0,pc.eta*100.0,color="green")
         ax_eta.plot(self.M_meff*1000.0,self.eta_max*100.0,"d",color="red")
         ax_eta.spines["right"].set_position(("outward",120))
         ax_eta.spines["right"].set_color("green")
@@ -488,7 +485,7 @@ class CDCMotor():
         
         ax_speed=host.twinx()
         ax_speed.patch.set_facecolor('white')
-        ax_speed.plot(self.M*1000.0,self.n,color="blue")
+        ax_speed.plot(pc.M*1000.0,pc.n,color="blue")
         if self.n_WP != 0 and self.M_WP != 0:
             ax_speed.plot(1000.0*self.M_WP,self.n_WP,"o",markerfacecolor="white",markeredgecolor="blue",markersize=7)
         ax_speed.spines["right"].set_position(("outward",60))
@@ -501,14 +498,15 @@ class CDCMotor():
         ax_speed.yaxis.label.set_color("blue")
         ax_speed.tick_params(axis="y", colors="blue")
         ax_speed.set_ylim(0,)
-        ax_speed.annotate('U={:0.1f}V'.format(self.U_N),(self.M[80]*1000*1.01,self.n[80]*1.01), color='blue', fontweight='bold')
+        ax_speed.annotate('U={:0.1f}V'.format(self.U_N),(pc.M[80]*1000*1.01,pc.n[80]*1.01), color='blue', fontweight='bold')
         tstr = 'motor: {}'.format(self.motor_name)
 
         if addVoltagesSpeed:
             for voltage in addVoltagesSpeed:
                 m_tmp = CDCMotor(U_N=voltage, R=self.R, I_0=self.I_0, k_M=self.k_M)
-                ax_speed.plot(m_tmp.M*1000.0,m_tmp.n,color="blue", linestyle=":")
-                ax_speed.annotate('U={:0.1f}V'.format(m_tmp.U_N),(m_tmp.M[80]*1000*1.01,m_tmp.n[80]*1.01), color='blue', fontweight='normal')
+                pc_tmp = CPerformanceCurves(m_tmp)
+                ax_speed.plot(pc_tmp.M*1000.0,pc_tmp.n,color="blue", linestyle=":")
+                ax_speed.annotate('U={:0.1f}V'.format(m_tmp.U_N),(pc_tmp.M[80]*1000*1.01,pc_tmp.n[80]*1.01), color='blue', fontweight='normal')
             print('voltage constant = {:0.0f}RPM/V'.format((self.n_0-m_tmp.n_0)/(self.U_N-m_tmp.U_N)))
 
 
@@ -520,7 +518,22 @@ class CDCMotor():
                     )
         plt.show()
 
-        
+
+class CPerformanceCurves():
+    def __init__(self, dcm:CDCMotor):
+        ## torque range available (used for plotting)
+        self.M = np.linspace(0.0,dcm.M_S,dcm.nPoints,endpoint=True)
+        ## current curve over torque range
+        self.I = dcm.calc_I_from_M(self.M)
+        ## speed over torque
+        self.n = dcm.calc_n_from_M(self.M)
+        ## electrical power over torque range
+        self.P_el = dcm.calc_P_el_from_M(self.M)
+        ## mechanical power over torque range
+        self.P_mech = dcm.calc_P_mech_from_M(self.M)
+        ## efficiency
+        self.eta = self.P_mech / self.P_el
+
 
 def Main():
     # R=1.44 (-25°C)
