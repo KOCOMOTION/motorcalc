@@ -9,6 +9,8 @@ from numpy.core.arrayprint import _none_or_positive_arg
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 from texttable import Texttable
+from dataclasses import dataclass
+from typing import List
 
 APP_NAME = "dcmotor.py"
 APP_VERSION = "1.0"
@@ -32,11 +34,18 @@ def number_of_rotations_to_angle(number_rot: np.array, is_absolute: bool = True)
         return angle
     return np.mod(angle, 2*np.pi)
 
+@dataclass(slots=True)
+class CGearbox:
+    """class to represent a gearbox on a DC motor"""
+    ratio: float            # gearbox ratio of output speed over input speed
+    efficiency: float       # ratio of mechanical output power over mechanical input power
+    name: str               # name of the gearbox
+
+
         
 class CDCMotor():
     """
     A class used to represent a DC Motor for calculation
-
     ...
 
     Attributes
@@ -102,20 +111,41 @@ class CDCMotor():
         file_name : str
         name of Excel file for report generation
         """
-        self.U_N = U_N                  # nominal Voltage in V
-        self.I_0 = I_0                  # no load current in A
-        self.k_M = k_M                  # torque constant in Nm/A
-        self.R = R                      # terminal resistance in Ohms
-        self.H = H                      # terminal inductance in mH
-        self.Theta = Theta              # rotor inertia in gcm^2 
-        self.nPoints = nPoints          # number of points to be plotted in graph
-        self.n_WP = n_WP                # required speed at working point
-        self.M_WP = M_WP                # required torque at working point
-        self.motor_name = motor_name    # motor name for text field in plot
-        self.application = application  # name of application for title
-        self.file_name = file_name      # name of file for excel export
-        self.calc_scalar_parameter()    # calculates all other scalar motor parameter
+        self.U_N = U_N                      # nominal Voltage in V
+        self.I_0 = I_0                      # no load current in A
+        self.k_M = k_M                      # torque constant in Nm/A
+        self.R = R                          # terminal resistance in Ohms
+        self.H = H                          # terminal inductance in mH
+        self.Theta = Theta                  # rotor inertia in gcm^2 
+        self.nPoints = nPoints              # number of points to be plotted in graph
+        self.n_WP = n_WP                    # required speed at working point
+        self.M_WP = M_WP                    # required torque at working point
+        self.motor_name = motor_name        # motor name for text field in plot
+        self.application = application      # name of application for title
+        self.file_name = file_name          # name of file for excel export
+        self.gearboxes: List[CGearbox] = [] # Gearbox stages to be added with add_gearbox
+        self.calc_scalar_parameter()        # calculates all other scalar motor parameter
 
+    
+    def add_gearbox(self, gb: CGearbox):
+        """add a gearbox class to the gearboxes-list"""
+        self.gearboxes.append(gb)
+        self.calc_scalar_parameter()
+
+    def calc_gearboxes_ratio(self) -> float:
+        """calculate the effective ratio of the gearboxes in the gearboxes list"""
+        ratio = 1.0
+        for gb in self.gearboxes:
+            ratio*=gb.ratio
+        return ratio
+
+    def calc_gearboxes_efficiency(self) -> float:
+        """calculate the effective efficiency in the gearboxes list"""
+        efficiency = 1.0
+        for gb in self.gearboxes:
+            efficiency*=gb.efficiency
+        return efficiency
+    
     def calc_I_from_M(self, M:np.array)->np.array:
         """
         Calculates the current at a given torque value
@@ -212,6 +242,7 @@ class CDCMotor():
         frac=self.a/self.b
         return c*(M+frac*M**2+frac*M*self.M_0)
 
+
     def calc_scalar_parameter(self):
         """
         Calculates all scalar motor parameter, to be stored in the class object.
@@ -241,7 +272,8 @@ class CDCMotor():
         self.eta_max = (1-np.sqrt(self.I_0/self.I_S))**2
 
         ## power @ max efficiency
-        self.P_meff=self.a*self.M_0*self.M_S+self.a*self.M_0**2-self.b*self.M_0 + np.sqrt(self.M_S*self.M_0+self.M_0**2) * (self.b-self.a*self.M_0)
+        self.P_meff=self.a*self.M_0*self.M_S+self.a*self.M_0**2-self.b*self.M_0 \
+            + np.sqrt(self.M_S*self.M_0+self.M_0**2) * (self.b-self.a*self.M_0) \
 
         ## max power
         self.M_maxpower = 0.5*self.M_S
@@ -249,6 +281,71 @@ class CDCMotor():
 
         ## load speed (speed @ max efficiency)
         self.n_meff = (self.b+self.a*np.sqrt(self.M_S*self.M_0+self.M_0**2))*30/np.pi
+
+        self.calc_scalar_parameter_gb()
+
+
+    def estimate_delta_I_from_gb_efficiency(self) -> float:
+        """Estimate the additive current introduced by the gearboxes"""
+        gb_efficiency = self.calc_gearboxes_efficiency()
+        delta_M = self.M_meff*(1-gb_efficiency)
+        k_M = self.k_M
+        return delta_M/k_M
+
+    def calc_scalar_parameter_gb(self):
+        """
+        Calculates all scalar motor parameter including the gearboxes assuming a constant loss moment 
+        estimated from the efficiency of the gear boxes. Relies on calc_scalar_parameter to be executed beforehand.
+        Estimation of the loss moment is empiric, based on the moment of highest efficiency. Results underestimate
+        the losses due to efficiency. 
+        """
+        if self.gearboxes==[]:
+            return
+        
+        gb_ratio = self.calc_gearboxes_ratio()
+        # print(gb_ratio)
+
+        delta_I = self.estimate_delta_I_from_gb_efficiency()
+        # print(delta_I)
+
+        self.k_M /= gb_ratio
+        self.I_0 += delta_I
+
+        self.b = self.U_N/self.k_M
+        self.a = -self.R/self.k_M**2
+
+        ## no load torque (Reibmoment) in Nm
+        self.M_0 = self.calc_M_0()
+       
+        ## stall current in A
+        self.I_S = self.calc_I_S()
+
+        ## stall torque in Nm
+        self.M_S = self.calc_M_S()
+
+        ## no-load speed
+        self.n_0 = self.calc_n_from_M(0.0)
+
+        ## torque @ max efficiency
+        self.M_meff = self.M_0*(np.sqrt(self.M_S/self.M_0+1)-1)
+
+        ## current @ max efficiency
+        self.I_meff = np.sqrt(self.M_S*self.M_0+self.M_0**2)/self.k_M
+                
+        ## max efficiency
+        self.eta_max = (1-np.sqrt(self.I_0/self.I_S))**2
+
+        ## power @ max efficiency
+        self.P_meff=self.a*self.M_0*self.M_S+self.a*self.M_0**2-self.b*self.M_0 \
+            + np.sqrt(self.M_S*self.M_0+self.M_0**2) * (self.b-self.a*self.M_0) \
+
+        ## max power
+        self.M_maxpower = 0.5*self.M_S
+        self.P_maxpower = self.a/4*self.M_S**2+self.a/2*self.M_S*self.M_0+self.b/2*self.M_S
+
+        ## load speed (speed @ max efficiency)
+        self.n_meff = (self.b+self.a*np.sqrt(self.M_S*self.M_0+self.M_0**2))*30/np.pi
+
 
     def calc_torque_from_current(self, I:np.array)->np.array:
         """
@@ -552,7 +649,7 @@ def Main():
     n_WP = 300
     M_WP = 0.005
     dcmotor=CDCMotor(U_N=U_N, I_0=I_0, k_M=k_M, R=R, H=0.61, Theta=6.7, n_WP=n_WP, M_WP=M_WP, application="166_A / LiDAR", motor_name="BO2015_Version 10V")
-    dcmotor.print_parameter()
+    print(dcmotor)
     dcmotor.tune_voltage_to_working_point()
     # dcmotor.print_parameter()
     # dcmotor.plotCurves(addVoltagesSpeed=[3,4,5,6])
