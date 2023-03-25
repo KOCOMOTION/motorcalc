@@ -1,4 +1,5 @@
 import motorcalc.dcmotor as dcm
+import motorcalc.dcmotorplot as dcplt
 import motorcalc.load_dynamics as ldyn
 import physics.inertia as inertia
 import physics.constants as phconst
@@ -35,7 +36,7 @@ def calc_VC2039():
     m=dcm.CDCMotor(U_N=U_nom, I_0=0.055, k_M=0.011, R=R)
     print(m)
     # m.list_spec_table()
-    # m.plotCurves()
+    dcplt.CDCMotorPlot(m).plotCurves()
 
     dt=1.0E-6               # time step for integration [s]
     w_0=0.0                 # initial speed
