@@ -372,35 +372,35 @@ class CDCMotor():
         Generates a string with motor parameter text
         """
         out_str='\n\n'
-        out_str+='INPUT PARAMETER:\n'
+        out_str+='\033[1mINPUT PARAMETER:\033[0m\n'
         out_str+=self._dash_line()
-        out_str+='parameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.\n'
+        out_str+='\033[1mparameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.\033[0m\n'
         out_str+=self._dash_line()
-        out_str+='unit\t\tVolt\t\tOhm\t\tAmpere\t\tRPM\t\tNm/A\n'
-        out_str+='value\t\t{:0.1f}\t\t{:0.2f}\t\t{:0.3f}\t\t{:0.0f}\t\t{:0.3f}\n\n'.format(self.U_N,self.R,self.I_0,self.n_0,self.k_M)
-        out_str+='PERFORMANCE DATA:\n'
+        out_str+='\033[34m\033[1munit\033[0m\t\t\033[34mVolt\t\tOhm\t\tAmpere\t\tRPM\t\tNm/A\033[0m\n'
+        out_str+='\033[1mvalue\033[0m\t\t{:0.1f}\t\t{:0.2f}\t\t{:0.3f}\t\t{:0.0f}\t\t{:0.3f}\n\n'.format(self.U_N,self.R,self.I_0,self.n_0,self.k_M)
+        out_str+='\033[1mPERFORMANCE DATA:\033[0m\n'
         out_str+=self._dash_line()
-        out_str+='parameter\tunit\tno-load\t\t@max eff.\t@max power\tstall\t\t@working point\n'
+        out_str+='\033[1mparameter\033[0m\tunit\t\033[34mno-load\033[0m\t\t\033[32m@max eff.\033[0m\t\033[33m@max power\033[0m\t\033[31mstall\033[0m\t\t\033[36m@working point\033[0m\n'
         out_str+=self._dash_line()
-        out_str+='speed\t\tRPM\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\n'.format( \
+        out_str+='\033[1mspeed\033[0m\t\tRPM\t\033[34m{:0.0f}\033[0m\t\t\033[32m{:0.0f}\033[0m\t\t\033[33m{:0.0f}\033[0m\t\t\033[31m{:0.0f}\033[0m\t\t\033[36m{:0.0f}\033[0m\n'.format( \
             self.n_0, self.n_meff, self.calc_n_from_M(self.M_maxpower), 0, self.calc_n_from_M(self.M_WP))
-        out_str+='current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\n'.format( \
+        out_str+='\033[1mcurrent\033[0m\t\tA\t\033[34m{:0.3f}\033[0m\t\t\033[32m{:0.3f}\033[0m\t\t\033[33m{:0.3f}\033[0m\t\t\033[31m{:0.3f}\033[0m\t\t\033[36m{:0.3f}\033[0m\n'.format( \
             self.I_0, self.I_meff, self.calc_I_from_M(self.M_maxpower), self.I_S, self.calc_I_from_M(self.M_WP))
-        out_str+='torque\t\tNm\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\n'.format( \
+        out_str+='\033[1mtorque\033[0m\t\tNm\t\033[34m{:0.3f}\033[0m\t\t\033[32m{:0.3f}\033[0m\t\t\033[33m{:0.3f}\033[0m\t\t\033[31m{:0.3f}\033[0m\t\t\033[36m{:0.3f}\033[0m\n'.format( \
             self.M_0, self.M_meff, self.M_maxpower, self.M_S, self.M_WP)
-        out_str+='power\t\tW\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\n'.format( \
+        out_str+='\033[1mpower\033[0m\t\tW\t\033[34m{:0.2f}\033[0m\t\t\033[32m{:0.2f}\033[0m\t\t\033[33m{:0.2f}\033[0m\t\t\033[31m{:0.2f}\033[0m\t\t\033[36m{:0.2f}\033[0m\n'.format( \
             0, self.P_meff, self.P_maxpower, 0, self.calc_P_mech_from_M(self.M_WP))
-        out_str+='eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\n\n'.format(0, self.eta_max*100.0, \
+        out_str+='\033[1meff.\033[0m\t\t%\t\033[34m{:0.1f}\033[0m\t\t\033[32m{:0.1f}\033[0m\t\t\033[33m{:0.1f}\033[0m\t\t\033[31m{:0.1f}\033[0m\t\t\033[36m{:0.1f}\033[0m\n\n'.format(0, self.eta_max*100.0, \
             self.calc_eta_from_M(self.M_maxpower)*100.0, 0.0, self.calc_eta_from_M(self.M_WP)*100.0)
         return out_str
 
     def _dash_line(self, length: int = 102, linebreak: bool = True):
-        dash_str=''
+        dash_str='\033[30m'
         for _ in range(length):
             dash_str += '-'
         if not linebreak:
             return dash_str
-        return dash_str + '\n'
+        return dash_str + '\033[0m\n'
 
     def __str__(self):
         return self.parameter_txt()
@@ -421,7 +421,6 @@ def Main():
     M_WP = 0.005
     dcmotor=CDCMotor(U_N=U_N, I_0=I_0, k_M=k_M, R=R, H=0.61, Theta=6.7, n_WP=n_WP, M_WP=M_WP, application="166_A / LiDAR", motor_name="BO2015_Version 10V")
     print(dcmotor)
-    dcmotor.tune_voltage_to_working_point()
  
 if __name__ == "__main__":
     Main()
