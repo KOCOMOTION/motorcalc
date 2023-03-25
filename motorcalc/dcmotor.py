@@ -1,7 +1,3 @@
-## Python module to caluclate DC-Motor parameter
-## Gerrit Kocherscheidt, KOCO automotive GmbH
-## Date 01-Mar-2023
-
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
@@ -9,6 +5,8 @@ from numpy.core.arrayprint import _none_or_positive_arg
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font
 from texttable import Texttable
+from dataclasses import dataclass
+from typing import List
 
 APP_NAME = "dcmotor.py"
 APP_VERSION = "1.0"
@@ -32,10 +30,18 @@ def number_of_rotations_to_angle(number_rot: np.array, is_absolute: bool = True)
         return angle
     return np.mod(angle, 2*np.pi)
 
+@dataclass(slots=True)
+class CGearbox:
+    """class to represent a gearbox on a DC motor"""
+    ratio: float            # gearbox ratio of output speed over input speed
+    efficiency: float       # ratio of mechanical output power over mechanical input power
+    name: str               # name of the gearbox
+
+
+        
 class CDCMotor():
     """
     A class used to represent a DC Motor for calculation
-
     ...
 
     Attributes
@@ -101,20 +107,41 @@ class CDCMotor():
         file_name : str
         name of Excel file for report generation
         """
-        self.U_N = U_N                  # nominal Voltage in V
-        self.I_0 = I_0                  # no load current in A
-        self.k_M = k_M                  # torque constant in Nm/A
-        self.R = R                      # terminal resistance in Ohms
-        self.H = H                      # terminal inductance in mH
-        self.Theta = Theta              # rotor inertia in gcm^2 
-        self.nPoints = nPoints          # number of points to be plotted in graph
-        self.n_WP = n_WP                # required speed at working point
-        self.M_WP = M_WP                # required torque at working point
-        self.motor_name = motor_name    # motor name for text field in plot
-        self.application = application  # name of application for title
-        self.file_name = file_name      # name of file for excel export
-        self.calc_motor_values()
+        self.U_N = U_N                      # nominal Voltage in V
+        self.I_0 = I_0                      # no load current in A
+        self.k_M = k_M                      # torque constant in Nm/A
+        self.R = R                          # terminal resistance in Ohms
+        self.H = H                          # terminal inductance in mH
+        self.Theta = Theta                  # rotor inertia in gcm^2 
+        self.nPoints = nPoints              # number of points to be plotted in graph
+        self.n_WP = n_WP                    # required speed at working point
+        self.M_WP = M_WP                    # required torque at working point
+        self.motor_name = motor_name        # motor name for text field in plot
+        self.application = application      # name of application for title
+        self.file_name = file_name          # name of file for excel export
+        self.gearboxes: List[CGearbox] = [] # Gearbox stages to be added with add_gearbox
+        self.calc_scalar_parameter()        # calculates all other scalar motor parameter
 
+    
+    def add_gearbox(self, gb: CGearbox):
+        """add a gearbox class to the gearboxes-list"""
+        self.gearboxes.append(gb)
+        self.calc_scalar_parameter()
+
+    def calc_gearboxes_ratio(self) -> float:
+        """calculate the effective ratio of the gearboxes in the gearboxes list"""
+        ratio = 1.0
+        for gb in self.gearboxes:
+            ratio*=gb.ratio
+        return ratio
+
+    def calc_gearboxes_efficiency(self) -> float:
+        """calculate the effective efficiency in the gearboxes list"""
+        efficiency = 1.0
+        for gb in self.gearboxes:
+            efficiency*=gb.efficiency
+        return efficiency
+    
     def calc_I_from_M(self, M:np.array)->np.array:
         """
         Calculates the current at a given torque value
@@ -212,9 +239,9 @@ class CDCMotor():
         return c*(M+frac*M**2+frac*M*self.M_0)
 
 
-    def calc_motor_values(self):
+    def calc_scalar_parameter(self):
         """
-        Calculates all values of the motor modell
+        Calculates all scalar motor parameter, to be stored in the class object.
         """
         self.b = self.U_N/self.k_M
         self.a = -self.R/self.k_M**2
@@ -228,27 +255,8 @@ class CDCMotor():
         ## stall torque in Nm
         self.M_S = self.calc_M_S()
 
-        ## torque range available (used for plotting)
-        self.M = np.linspace(0.0,self.M_S,self.nPoints,endpoint=True)
-
-        ## current curve over torque range
-        self.I = self.calc_I_from_M(self.M)
-
-        ## speed curve over torque range
-##        self.omega = (self.U_N-self.R*self.I)/self.k_M
-##
-##        self.n = self.omega*30/np.pi
-        self.n = self.calc_n_from_M(self.M)
-        self.n_0 = self.n[0]
-
-        ## electrical power over torque range
-        self.P_el = self.calc_P_el_from_M(self.M)
-
-        ## mechanical power over torque range
-        self.P_mech = self.calc_P_mech_from_M(self.M)
-
-        ## efficiency
-        self.eta = self.P_mech / self.P_el
+        ## no-load speed
+        self.n_0 = self.calc_n_from_M(0.0)
 
         ## torque @ max efficiency
         self.M_meff = self.M_0*(np.sqrt(self.M_S/self.M_0+1)-1)
@@ -260,7 +268,8 @@ class CDCMotor():
         self.eta_max = (1-np.sqrt(self.I_0/self.I_S))**2
 
         ## power @ max efficiency
-        self.P_meff=self.a*self.M_0*self.M_S+self.a*self.M_0**2-self.b*self.M_0 + np.sqrt(self.M_S*self.M_0+self.M_0**2) * (self.b-self.a*self.M_0)
+        self.P_meff=self.a*self.M_0*self.M_S+self.a*self.M_0**2-self.b*self.M_0 \
+            + np.sqrt(self.M_S*self.M_0+self.M_0**2) * (self.b-self.a*self.M_0) \
 
         ## max power
         self.M_maxpower = 0.5*self.M_S
@@ -268,6 +277,71 @@ class CDCMotor():
 
         ## load speed (speed @ max efficiency)
         self.n_meff = (self.b+self.a*np.sqrt(self.M_S*self.M_0+self.M_0**2))*30/np.pi
+
+        self.calc_scalar_parameter_gb()
+
+
+    def estimate_delta_I_from_gb_efficiency(self) -> float:
+        """Estimate the additive current introduced by the gearboxes"""
+        gb_efficiency = self.calc_gearboxes_efficiency()
+        delta_M = self.M_meff*(1-gb_efficiency)
+        k_M = self.k_M
+        return delta_M/k_M
+
+    def calc_scalar_parameter_gb(self):
+        """
+        Calculates all scalar motor parameter including the gearboxes assuming a constant loss moment 
+        estimated from the efficiency of the gear boxes. Relies on calc_scalar_parameter to be executed beforehand.
+        Estimation of the loss moment is empiric, based on the moment of highest efficiency. Results underestimate
+        the losses due to efficiency. 
+        """
+        if self.gearboxes==[]:
+            return
+        
+        gb_ratio = self.calc_gearboxes_ratio()
+        # print(gb_ratio)
+
+        delta_I = self.estimate_delta_I_from_gb_efficiency()
+        # print(delta_I)
+
+        self.k_M /= gb_ratio
+        self.I_0 += delta_I
+
+        self.b = self.U_N/self.k_M
+        self.a = -self.R/self.k_M**2
+
+        ## no load torque (Reibmoment) in Nm
+        self.M_0 = self.calc_M_0()
+       
+        ## stall current in A
+        self.I_S = self.calc_I_S()
+
+        ## stall torque in Nm
+        self.M_S = self.calc_M_S()
+
+        ## no-load speed
+        self.n_0 = self.calc_n_from_M(0.0)
+
+        ## torque @ max efficiency
+        self.M_meff = self.M_0*(np.sqrt(self.M_S/self.M_0+1)-1)
+
+        ## current @ max efficiency
+        self.I_meff = np.sqrt(self.M_S*self.M_0+self.M_0**2)/self.k_M
+                
+        ## max efficiency
+        self.eta_max = (1-np.sqrt(self.I_0/self.I_S))**2
+
+        ## power @ max efficiency
+        self.P_meff=self.a*self.M_0*self.M_S+self.a*self.M_0**2-self.b*self.M_0 \
+            + np.sqrt(self.M_S*self.M_0+self.M_0**2) * (self.b-self.a*self.M_0) \
+
+        ## max power
+        self.M_maxpower = 0.5*self.M_S
+        self.P_maxpower = self.a/4*self.M_S**2+self.a/2*self.M_S*self.M_0+self.b/2*self.M_S
+
+        ## load speed (speed @ max efficiency)
+        self.n_meff = (self.b+self.a*np.sqrt(self.M_S*self.M_0+self.M_0**2))*30/np.pi
+
 
     def calc_torque_from_current(self, I:np.array)->np.array:
         """
@@ -286,31 +360,60 @@ class CDCMotor():
         and M_WP (working point torque) will be met. 
         """
         self.U_N=self.R*(self.M_WP+self.M_0)/self.k_M+self.k_M*self.n_WP*np.pi/30.0
-        self.calc_motor_values()
+        self.calc_scalar_parameter()
 
+    def calc_performance_curves(self):
+        ## torque range available (used for plotting)
+        self.M = np.linspace(0.0,self.M_S,self.nPoints,endpoint=True)
+        ## current curve over torque range
+        self.I = self.calc_I_from_M(self.M)
+        ## speed over torque
+        self.n = self.calc_n_from_M(self.M)
+        ## electrical power over torque range
+        self.P_el = self.calc_P_el_from_M(self.M)
+        ## mechanical power over torque range
+        self.P_mech = self.calc_P_mech_from_M(self.M)
+        ## efficiency
+        self.eta = self.P_mech / self.P_el
 
-    def print_parameter(self):
+    def parameter_txt(self) -> str:
         """
-        Prints a set of system values to the command line
+        Generates a string with motor parameter text
         """
-        print('input parameter')
-        print('parameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.')
-        print('unit\t\tVolt\t\tOhm\t\tAmpere\t\tRPM\t\tNm/A')
-        print('value\t\t{:0.1f}\t\t{:0.2f}\t\t{:0.3f}\t\t{:0.0f}\t\t{:0.3f}'.format(self.U_N,self.R,self.I_0,self.n_0,self.k_M))
-        print('')
-        print('motor performance data:')
-        print('parameter\tunit\tno-load\t\t@max eff.\t@max power\tstall\t@working point')
-        print('speed\t\tRPM\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}'.format( \
-            self.n_0, self.n_meff, self.calc_n_from_M(self.M_maxpower), 0, self.calc_n_from_M(self.M_WP)))
-        print('current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format( \
-            self.I_0, self.I_meff, self.calc_I_from_M(self.M_maxpower), self.I_S, self.calc_I_from_M(self.M_WP)))
-        print('torque\t\tNm\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}'.format( \
-            self.M_0, self.M_meff, self.M_maxpower, self.M_S, self.M_WP))
-        print('power\t\tW\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}'.format( \
-            0, self.P_meff, self.P_maxpower, 0, self.calc_P_mech_from_M(self.M_WP)))
-        print('eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}'.format(0, self.eta_max*100.0, \
-            self.calc_eta_from_M(self.M_maxpower)*100.0, 0.0, self.calc_eta_from_M(self.M_WP)*100.0))
-        print('')
+        out_str='\n\n'
+        out_str+='INPUT PARAMETER:\n'
+        out_str+=self._dash_line()
+        out_str+='parameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.\n'
+        out_str+=self._dash_line()
+        out_str+='unit\t\tVolt\t\tOhm\t\tAmpere\t\tRPM\t\tNm/A\n'
+        out_str+='value\t\t{:0.1f}\t\t{:0.2f}\t\t{:0.3f}\t\t{:0.0f}\t\t{:0.3f}\n\n'.format(self.U_N,self.R,self.I_0,self.n_0,self.k_M)
+        out_str+='PERFORMANCE DATA:\n'
+        out_str+=self._dash_line()
+        out_str+='parameter\tunit\tno-load\t\t@max eff.\t@max power\tstall\t\t@working point\n'
+        out_str+=self._dash_line()
+        out_str+='speed\t\tRPM\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\n'.format( \
+            self.n_0, self.n_meff, self.calc_n_from_M(self.M_maxpower), 0, self.calc_n_from_M(self.M_WP))
+        out_str+='current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\n'.format( \
+            self.I_0, self.I_meff, self.calc_I_from_M(self.M_maxpower), self.I_S, self.calc_I_from_M(self.M_WP))
+        out_str+='torque\t\tNm\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\n'.format( \
+            self.M_0, self.M_meff, self.M_maxpower, self.M_S, self.M_WP)
+        out_str+='power\t\tW\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\n'.format( \
+            0, self.P_meff, self.P_maxpower, 0, self.calc_P_mech_from_M(self.M_WP))
+        out_str+='eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\n\n'.format(0, self.eta_max*100.0, \
+            self.calc_eta_from_M(self.M_maxpower)*100.0, 0.0, self.calc_eta_from_M(self.M_WP)*100.0)
+        return out_str
+
+    def _dash_line(self, length: int = 102, linebreak: bool = True):
+        dash_str=''
+        for _ in range(length):
+            dash_str += '-'
+        if not linebreak:
+            return dash_str
+        return dash_str + '\n'
+
+    def __str__(self):
+        return self.parameter_txt()
+
 
     def list_spec_table(self):
         """
@@ -422,106 +525,6 @@ class CDCMotor():
         return row,col 
 
 
-    def plotCurves(self, addVoltagesSpeed:list[float]=None):
-        """
-        Plots system values into a matplotlib graph
-
-        Parameters:
-        -----------
-        addVoltagesSpeed : list of floats
-            List of additional voltages that are used to plot additional n-over-M-curves
-        """
-        fig=plt.figure(figsize=(12,8))
-        fig.patch.set_facecolor('white')
-        host = plt.subplot(111)
-        host.set_title(self.application)
-        host.patch.set_facecolor('white')
-
-        #generate host plot
-        plt.subplots_adjust(right=0.75)
-        plt.subplots_adjust(left=0.1)
-        plt.subplots_adjust(bottom=0.10)
-        host.plot(self.M*1000.0,self.I,color="red")
-        host.plot([1000.0*self.M_meff,1000.0*self.M_meff],[0.0, 1.2*self.I_S],":",color="black")
-        host.plot([1000.0*self.M_maxpower,1000.0*self.M_maxpower],[0.0, 1.2*self.I_S],":",color="black")
-        if self.M_WP != 0:
-            host.plot([1000.0*self.M_WP,1000.0*self.M_WP],[0.0, 1.2*self.I_S],"-",color="cyan")
-        host.set_xlabel("torque (mNm)")
-        host.set_ylabel("current (A)")
-        host.yaxis.label.set_color("red")
-        host.spines["left"].set_color("red")
-        host.tick_params(axis="y", colors="red")
-        host.grid(True)
-        host.set_xlim(0,1000.0*self.M_S)
-        host.set_ylim(0,1.2*self.I_S)
-        
-
-        ax_power=host.twinx()
-        ax_power.patch.set_facecolor('white')
-        ax_power.plot(self.M*1000.0,self.P_mech,".-",color="black")
-        ax_power.plot(1000.0*self.M_meff,self.P_meff,"d",color="red")
-        ax_power.plot(1000.0*self.M_maxpower,self.P_maxpower,"d",color="red")
-        if self.M_WP != 0 and self.n_WP != 0:
-            P_mech_WP = self.M_WP * self.n_WP * np.pi / 30.0
-            ax_power.plot(1000.0*self.M_WP, P_mech_WP,"o",markerfacecolor="white", markeredgecolor="black", markersize=7)
-        ax_power.spines["right"].set_position(("outward",0))
-        ax_power.spines["left"].set_color("none")
-        ax_power.spines["top"].set_color("none")
-        ax_power.spines["bottom"].set_color("none")
-        ax_power.yaxis.label.set_color("black")
-        ax_power.set_ylabel("power (W)")
-        ax_power.set_ylim(0,)
-
-        ax_eta=host.twinx()
-        ax_eta.patch.set_facecolor('white')
-        ax_eta.plot(self.M*1000.0,self.eta*100.0,color="green")
-        ax_eta.plot(self.M_meff*1000.0,self.eta_max*100.0,"d",color="red")
-        ax_eta.spines["right"].set_position(("outward",120))
-        ax_eta.spines["right"].set_color("green")
-        ax_eta.spines["left"].set_color("none")
-        ax_eta.spines["top"].set_color("none")
-        ax_eta.spines["bottom"].set_color("none")
-        ax_eta.yaxis.label.set_color("green")
-        ax_eta.tick_params(axis="y", colors="green")
-        ax_eta.set_ylabel("$\eta$ (%)")
-        ax_eta.set_ylim(0,100)
-        
-        ax_speed=host.twinx()
-        ax_speed.patch.set_facecolor('white')
-        ax_speed.plot(self.M*1000.0,self.n,color="blue")
-        if self.n_WP != 0 and self.M_WP != 0:
-            ax_speed.plot(1000.0*self.M_WP,self.n_WP,"o",markerfacecolor="white",markeredgecolor="blue",markersize=7)
-        ax_speed.spines["right"].set_position(("outward",60))
-        ax_speed.spines["right"].set_color("blue")
-        ax_speed.spines["left"].set_color("none")
-        ax_speed.spines["top"].set_color("none")
-        ax_speed.spines["bottom"].set_color("none")
-        ax_speed.yaxis.label.set_color("blue")
-        ax_speed.set_ylabel("speed (rpm)")
-        ax_speed.yaxis.label.set_color("blue")
-        ax_speed.tick_params(axis="y", colors="blue")
-        ax_speed.set_ylim(0,)
-        ax_speed.annotate('U={:0.1f}V'.format(self.U_N),(self.M[80]*1000*1.01,self.n[80]*1.01), color='blue', fontweight='bold')
-        tstr = 'motor: {}'.format(self.motor_name)
-
-        if addVoltagesSpeed:
-            for voltage in addVoltagesSpeed:
-                m_tmp = CDCMotor(U_N=voltage, R=self.R, I_0=self.I_0, k_M=self.k_M)
-                ax_speed.plot(m_tmp.M*1000.0,m_tmp.n,color="blue", linestyle=":")
-                ax_speed.annotate('U={:0.1f}V'.format(m_tmp.U_N),(m_tmp.M[80]*1000*1.01,m_tmp.n[80]*1.01), color='blue', fontweight='normal')
-            print('voltage constant = {:0.0f}RPM/V'.format((self.n_0-m_tmp.n_0)/(self.U_N-m_tmp.U_N)))
-
-
-        th=plt.text(0.65,0.95, tstr,
-                    horizontalalignment='left',
-                    verticalalignment='center',
-                    transform=host.transAxes,
-                    bbox=dict(fc='white',ec='black')
-                    )
-        plt.show()
-
-        
-
 def Main():
     # R=1.44 (-25°C)
     # R=2.00 (125°C)
@@ -532,30 +535,14 @@ def Main():
     m_T = (2.0-1.44)/(125+25)
     T_0 = 1.44 - m_T*(-25)
     R = m_T*T+T_0*c
-    I_S = U_N / R
     k_M = 0.005985*np.sqrt(c)
-    M_S = 0.017099
     I_0 = 0.13*6/U_N
     n_WP = 300
     M_WP = 0.005
     dcmotor=CDCMotor(U_N=U_N, I_0=I_0, k_M=k_M, R=R, H=0.61, Theta=6.7, n_WP=n_WP, M_WP=M_WP, application="166_A / LiDAR", motor_name="BO2015_Version 10V")
-    dcmotor.print_parameter()
+    print(dcmotor)
     dcmotor.tune_voltage_to_working_point()
-    # dcmotor.print_parameter()
-    # dcmotor.plotCurves(addVoltagesSpeed=[3,4,5,6])
-    # dcmotor.plotCurves()
     dcmotor.list_spec_table()
  
-    # GB_eta=0.8
-    # GB_ratio=100
-    # GB_name='100:1'
-    # gbmotor=CDCMotorWithGearbox(U_N=U_N, I_0=I_0, k_M=k_M, R=R, GB_ratio=GB_ratio, GB_eta=GB_eta, \
-    #     n_WP_system=n_WP/GB_ratio, M_WP_system=M_WP*GB_ratio*GB_eta, \
-    #     application="Test with GB", motor_name="BO2015_Version 10V", GB_name=GB_name)
-    # gbmotor.print_parameter()
-    # gbmotor.tune_voltage_to_working_point()
-    # gbmotor.print_parameter()
-    # gbmotor.plotSystemCurves()
-
 if __name__ == "__main__":
     Main()

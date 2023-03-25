@@ -1,4 +1,5 @@
-from motorcalc.dcmotor import CDCMotor
+import motorcalc.dcmotor as dcm
+import motorcalc.dcmotorplot as dcplt
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -7,7 +8,7 @@ def integration_step(func:callable, old_val:float = 0.0, dt:float = 1.0E-3, kwar
     return old_val + func(**kwargs)*dt
     
 def integrate_omega_alpha(
-    m: CDCMotor, 
+    m: dcm.CDCMotor, 
     w_0: float=0.0, 
     alpha_0: float=0.0, 
     theta: float=1.0,
@@ -70,7 +71,7 @@ def plot_data(t: np.array, w:np.array, a:np.array, E:np.array, I: np.array, redu
     plt.show()
 
 def dw_dt(
-        motor:CDCMotor = None,
+        motor: dcm.CDCMotor = None,
         theta:float = None, 
         w_act: float = None,
         loss_torque: float = 0.0,
@@ -92,9 +93,9 @@ def E_rot(
 
 
 def calc_motor_schulung():
-    m=CDCMotor(U_N=24, I_0=0.120, k_M=0.55, R=7)
+    m=dcm.CDCMotor(U_N=24, I_0=0.120, k_M=0.55, R=7)
     # m.list_spec_table()
-    # m.plotCurves()
+    dcplt.CDCMotorPlot(m).plotCurves()
 
     dt=1.0E-1       # time step for integration [s]
     w_0=0.0         # initial speed
