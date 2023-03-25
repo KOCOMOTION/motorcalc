@@ -91,7 +91,7 @@ class CDCMotorPlot():
 
         if addVoltagesSpeed:
             for voltage in addVoltagesSpeed:
-                m_tmp = CDCMotor(U_N=voltage, R=self.dcm.R, I_0=self.dcm.I_0, k_M=self.dcm.k_M)
+                m_tmp = dcm.CDCMotor(U_N=voltage, R=self.dcm.R, I_0=self.dcm.I_0, k_M=self.dcm.k_M)
                 m_tmp.calc_performance_curves()
                 ax_speed.plot(m_tmp.M*1000.0, m_tmp.n,color="blue", linestyle=":")
                 ax_speed.annotate('U={:0.1f}V'.format(m_tmp.U_N),(m_tmp.M[80]*1000*1.01,m_tmp.n[80]*1.01), color='blue', fontweight='normal')
