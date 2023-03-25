@@ -1,7 +1,3 @@
-## Python module to caluclate DC-Motor parameter
-## Gerrit Kocherscheidt, KOCO automotive GmbH
-## Date 01-Mar-2023
-
 import numpy as np
 import matplotlib.pyplot as plt
 import datetime
@@ -366,11 +362,25 @@ class CDCMotor():
         self.U_N=self.R*(self.M_WP+self.M_0)/self.k_M+self.k_M*self.n_WP*np.pi/30.0
         self.calc_scalar_parameter()
 
+    def calc_performance_curves(self):
+        ## torque range available (used for plotting)
+        self.M = np.linspace(0.0,self.M_S,self.nPoints,endpoint=True)
+        ## current curve over torque range
+        self.I = self.calc_I_from_M(self.M)
+        ## speed over torque
+        self.n = self.calc_n_from_M(self.M)
+        ## electrical power over torque range
+        self.P_el = self.calc_P_el_from_M(self.M)
+        ## mechanical power over torque range
+        self.P_mech = self.calc_P_mech_from_M(self.M)
+        ## efficiency
+        self.eta = self.P_mech / self.P_el
+
     def parameter_txt(self) -> str:
         """
         Generates a string with motor parameter text
         """
-        out_str=''
+        out_str='\n\n'
         out_str+='INPUT PARAMETER:\n'
         out_str+=self._dash_line()
         out_str+='parameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.\n'
@@ -515,123 +525,6 @@ class CDCMotor():
         return row,col 
 
 
-    def plotCurves(self, addVoltagesSpeed:list[float]=None):
-        """
-        Plots system values into a matplotlib graph
-
-        Parameters:
-        -----------
-        addVoltagesSpeed : list of floats
-            List of additional voltages that are used to plot additional n-over-M-curves
-        """
-        pc = CPerformanceCurves(self)
-        fig=plt.figure(figsize=(12,8))
-        fig.patch.set_facecolor('white')
-        host = plt.subplot(111)
-        host.set_title(self.application)
-        host.patch.set_facecolor('white')
-
-        #generate host plot
-        plt.subplots_adjust(right=0.75)
-        plt.subplots_adjust(left=0.1)
-        plt.subplots_adjust(bottom=0.10)
-        host.plot(pc.M*1000.0,pc.I,color="red")
-        host.plot([1000.0*self.M_meff,1000.0*self.M_meff],[0.0, 1.2*self.I_S],":",color="black")
-        host.plot([1000.0*self.M_maxpower,1000.0*self.M_maxpower],[0.0, 1.2*self.I_S],":",color="black")
-        if self.M_WP != 0:
-            host.plot([1000.0*self.M_WP,1000.0*self.M_WP],[0.0, 1.2*self.I_S],"-",color="cyan")
-        host.set_xlabel("torque (mNm)")
-        host.set_ylabel("current (A)")
-        host.yaxis.label.set_color("red")
-        host.spines["left"].set_color("red")
-        host.tick_params(axis="y", colors="red")
-        host.grid(True)
-        host.set_xlim(0,1000.0*self.M_S)
-        host.set_ylim(0,1.2*self.I_S)
-        
-
-        ax_power=host.twinx()
-        ax_power.patch.set_facecolor('white')
-        ax_power.plot(pc.M*1000.0,pc.P_mech,".-",color="black")
-        ax_power.plot(1000.0*self.M_meff,self.P_meff,"d",color="red")
-        ax_power.plot(1000.0*self.M_maxpower,self.P_maxpower,"d",color="red")
-        if self.M_WP != 0 and self.n_WP != 0:
-            P_mech_WP = self.M_WP * self.n_WP * np.pi / 30.0
-            ax_power.plot(1000.0*self.M_WP, P_mech_WP,"o",markerfacecolor="white", markeredgecolor="black", markersize=7)
-        ax_power.spines["right"].set_position(("outward",0))
-        ax_power.spines["left"].set_color("none")
-        ax_power.spines["top"].set_color("none")
-        ax_power.spines["bottom"].set_color("none")
-        ax_power.yaxis.label.set_color("black")
-        ax_power.set_ylabel("power (W)")
-        ax_power.set_ylim(0,)
-
-        ax_eta=host.twinx()
-        ax_eta.patch.set_facecolor('white')
-        ax_eta.plot(pc.M*1000.0,pc.eta*100.0,color="green")
-        ax_eta.plot(self.M_meff*1000.0,self.eta_max*100.0,"d",color="red")
-        ax_eta.spines["right"].set_position(("outward",120))
-        ax_eta.spines["right"].set_color("green")
-        ax_eta.spines["left"].set_color("none")
-        ax_eta.spines["top"].set_color("none")
-        ax_eta.spines["bottom"].set_color("none")
-        ax_eta.yaxis.label.set_color("green")
-        ax_eta.tick_params(axis="y", colors="green")
-        ax_eta.set_ylabel("$\eta$ (%)")
-        ax_eta.set_ylim(0,100)
-        
-        ax_speed=host.twinx()
-        ax_speed.patch.set_facecolor('white')
-        ax_speed.plot(pc.M*1000.0,pc.n,color="blue")
-        if self.n_WP != 0 and self.M_WP != 0:
-            ax_speed.plot(1000.0*self.M_WP,self.n_WP,"o",markerfacecolor="white",markeredgecolor="blue",markersize=7)
-        ax_speed.spines["right"].set_position(("outward",60))
-        ax_speed.spines["right"].set_color("blue")
-        ax_speed.spines["left"].set_color("none")
-        ax_speed.spines["top"].set_color("none")
-        ax_speed.spines["bottom"].set_color("none")
-        ax_speed.yaxis.label.set_color("blue")
-        ax_speed.set_ylabel("speed (rpm)")
-        ax_speed.yaxis.label.set_color("blue")
-        ax_speed.tick_params(axis="y", colors="blue")
-        ax_speed.set_ylim(0,)
-        ax_speed.annotate('U={:0.1f}V'.format(self.U_N),(pc.M[80]*1000*1.01,pc.n[80]*1.01), color='blue', fontweight='bold')
-        tstr = 'motor: {}'.format(self.motor_name)
-
-        if addVoltagesSpeed:
-            for voltage in addVoltagesSpeed:
-                m_tmp = CDCMotor(U_N=voltage, R=self.R, I_0=self.I_0, k_M=self.k_M)
-                pc_tmp = CPerformanceCurves(m_tmp)
-                ax_speed.plot(pc_tmp.M*1000.0,pc_tmp.n,color="blue", linestyle=":")
-                ax_speed.annotate('U={:0.1f}V'.format(m_tmp.U_N),(pc_tmp.M[80]*1000*1.01,pc_tmp.n[80]*1.01), color='blue', fontweight='normal')
-            print('voltage constant = {:0.0f}RPM/V'.format((self.n_0-m_tmp.n_0)/(self.U_N-m_tmp.U_N)))
-
-
-        th=plt.text(0.65,0.95, tstr,
-                    horizontalalignment='left',
-                    verticalalignment='center',
-                    transform=host.transAxes,
-                    bbox=dict(fc='white',ec='black')
-                    )
-        plt.show()
-
-
-class CPerformanceCurves():
-    def __init__(self, dcm:CDCMotor):
-        ## torque range available (used for plotting)
-        self.M = np.linspace(0.0,dcm.M_S,dcm.nPoints,endpoint=True)
-        ## current curve over torque range
-        self.I = dcm.calc_I_from_M(self.M)
-        ## speed over torque
-        self.n = dcm.calc_n_from_M(self.M)
-        ## electrical power over torque range
-        self.P_el = dcm.calc_P_el_from_M(self.M)
-        ## mechanical power over torque range
-        self.P_mech = dcm.calc_P_mech_from_M(self.M)
-        ## efficiency
-        self.eta = self.P_mech / self.P_el
-
-
 def Main():
     # R=1.44 (-25°C)
     # R=2.00 (125°C)
@@ -642,30 +535,14 @@ def Main():
     m_T = (2.0-1.44)/(125+25)
     T_0 = 1.44 - m_T*(-25)
     R = m_T*T+T_0*c
-    I_S = U_N / R
     k_M = 0.005985*np.sqrt(c)
-    M_S = 0.017099
     I_0 = 0.13*6/U_N
     n_WP = 300
     M_WP = 0.005
     dcmotor=CDCMotor(U_N=U_N, I_0=I_0, k_M=k_M, R=R, H=0.61, Theta=6.7, n_WP=n_WP, M_WP=M_WP, application="166_A / LiDAR", motor_name="BO2015_Version 10V")
     print(dcmotor)
     dcmotor.tune_voltage_to_working_point()
-    # dcmotor.print_parameter()
-    # dcmotor.plotCurves(addVoltagesSpeed=[3,4,5,6])
-    # dcmotor.plotCurves()
     dcmotor.list_spec_table()
  
-    # GB_eta=0.8
-    # GB_ratio=100
-    # GB_name='100:1'
-    # gbmotor=CDCMotorWithGearbox(U_N=U_N, I_0=I_0, k_M=k_M, R=R, GB_ratio=GB_ratio, GB_eta=GB_eta, \
-    #     n_WP_system=n_WP/GB_ratio, M_WP_system=M_WP*GB_ratio*GB_eta, \
-    #     application="Test with GB", motor_name="BO2015_Version 10V", GB_name=GB_name)
-    # gbmotor.print_parameter()
-    # gbmotor.tune_voltage_to_working_point()
-    # gbmotor.print_parameter()
-    # gbmotor.plotSystemCurves()
-
 if __name__ == "__main__":
     Main()
