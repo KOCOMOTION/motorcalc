@@ -1,15 +1,6 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import datetime
-from numpy.core.arrayprint import _none_or_positive_arg
-from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font
-from texttable import Texttable
 from dataclasses import dataclass
 from typing import List
-
-APP_NAME = "dcmotor.py"
-APP_VERSION = "1.0"
 
 def omega_to_speed_rpm(omega: np.array) -> np.array:
     """convert angular speed in rad/s to rpm"""
@@ -381,149 +372,38 @@ class CDCMotor():
         Generates a string with motor parameter text
         """
         out_str='\n\n'
-        out_str+='INPUT PARAMETER:\n'
+        out_str+='\033[1mINPUT PARAMETER:\033[0m\n'
         out_str+=self._dash_line()
-        out_str+='parameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.\n'
+        out_str+='\033[1mparameter\tvoltage\t\tterm. resist.\tno-load cur.\tno-load speed\ttorque const.\033[0m\n'
         out_str+=self._dash_line()
-        out_str+='unit\t\tVolt\t\tOhm\t\tAmpere\t\tRPM\t\tNm/A\n'
-        out_str+='value\t\t{:0.1f}\t\t{:0.2f}\t\t{:0.3f}\t\t{:0.0f}\t\t{:0.3f}\n\n'.format(self.U_N,self.R,self.I_0,self.n_0,self.k_M)
-        out_str+='PERFORMANCE DATA:\n'
+        out_str+='\033[34m\033[1munit\033[0m\t\t\033[34mVolt\t\tOhm\t\tAmpere\t\tRPM\t\tNm/A\033[0m\n'
+        out_str+='\033[1mvalue\033[0m\t\t{:0.1f}\t\t{:0.2f}\t\t{:0.3f}\t\t{:0.0f}\t\t{:0.3f}\n\n'.format(self.U_N,self.R,self.I_0,self.n_0,self.k_M)
+        out_str+='\033[1mPERFORMANCE DATA:\033[0m\n'
         out_str+=self._dash_line()
-        out_str+='parameter\tunit\tno-load\t\t@max eff.\t@max power\tstall\t\t@working point\n'
+        out_str+='\033[1mparameter\033[0m\tunit\t\033[34mno-load\033[0m\t\t\033[32m@max eff.\033[0m\t\033[33m@max power\033[0m\t\033[31mstall\033[0m\t\t\033[36m@working point\033[0m\n'
         out_str+=self._dash_line()
-        out_str+='speed\t\tRPM\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\t\t{:0.0f}\n'.format( \
+        out_str+='\033[1mspeed\033[0m\t\tRPM\t\033[34m{:0.0f}\033[0m\t\t\033[32m{:0.0f}\033[0m\t\t\033[33m{:0.0f}\033[0m\t\t\033[31m{:0.0f}\033[0m\t\t\033[36m{:0.0f}\033[0m\n'.format( \
             self.n_0, self.n_meff, self.calc_n_from_M(self.M_maxpower), 0, self.calc_n_from_M(self.M_WP))
-        out_str+='current\t\tA\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\n'.format( \
+        out_str+='\033[1mcurrent\033[0m\t\tA\t\033[34m{:0.3f}\033[0m\t\t\033[32m{:0.3f}\033[0m\t\t\033[33m{:0.3f}\033[0m\t\t\033[31m{:0.3f}\033[0m\t\t\033[36m{:0.3f}\033[0m\n'.format( \
             self.I_0, self.I_meff, self.calc_I_from_M(self.M_maxpower), self.I_S, self.calc_I_from_M(self.M_WP))
-        out_str+='torque\t\tNm\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\t\t{:0.3f}\n'.format( \
+        out_str+='\033[1mtorque\033[0m\t\tNm\t\033[34m{:0.3f}\033[0m\t\t\033[32m{:0.3f}\033[0m\t\t\033[33m{:0.3f}\033[0m\t\t\033[31m{:0.3f}\033[0m\t\t\033[36m{:0.3f}\033[0m\n'.format( \
             self.M_0, self.M_meff, self.M_maxpower, self.M_S, self.M_WP)
-        out_str+='power\t\tW\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\t\t{:0.2f}\n'.format( \
+        out_str+='\033[1mpower\033[0m\t\tW\t\033[34m{:0.2f}\033[0m\t\t\033[32m{:0.2f}\033[0m\t\t\033[33m{:0.2f}\033[0m\t\t\033[31m{:0.2f}\033[0m\t\t\033[36m{:0.2f}\033[0m\n'.format( \
             0, self.P_meff, self.P_maxpower, 0, self.calc_P_mech_from_M(self.M_WP))
-        out_str+='eff.\t\t%\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\t\t{:0.1f}\n\n'.format(0, self.eta_max*100.0, \
+        out_str+='\033[1meff.\033[0m\t\t%\t\033[34m{:0.1f}\033[0m\t\t\033[32m{:0.1f}\033[0m\t\t\033[33m{:0.1f}\033[0m\t\t\033[31m{:0.1f}\033[0m\t\t\033[36m{:0.1f}\033[0m\n\n'.format(0, self.eta_max*100.0, \
             self.calc_eta_from_M(self.M_maxpower)*100.0, 0.0, self.calc_eta_from_M(self.M_WP)*100.0)
         return out_str
 
     def _dash_line(self, length: int = 102, linebreak: bool = True):
-        dash_str=''
+        dash_str='\033[30m'
         for _ in range(length):
             dash_str += '-'
         if not linebreak:
             return dash_str
-        return dash_str + '\n'
+        return dash_str + '\033[0m\n'
 
     def __str__(self):
         return self.parameter_txt()
-
-
-    def list_spec_table(self):
-        """
-        Prints a specification table to the command line
-        """
-        t = Texttable()
-        t.add_row(["No","Parameter","Unit","Value"])
-        t.add_row([1,"Voltage","V",self.U_N])
-        t.add_row([2,"Terminal resistance","Ω",self.R])
-        t.add_row([3, "Terminal inductance", "mH", self.H])
-        t.add_row([4, "No-load speed", "rpm", int(self.n_0)])
-        t.add_row([5, "No-load current", "A", self.I_0])
-        t.add_row([6, "Nominal torque", "mNm", 1000.0*self.M_WP])
-        t.add_row([7, "Nominal speed", "rpm", int(self.calc_n_from_M(self.M_WP))])
-        t.add_row([8, "Nominal current", "A", self.calc_I_from_M(self.M_WP)])
-        t.add_row([9, "Max. output power", "W", self.P_maxpower])        
-        t.add_row([10, "Max. efficiency", "%", self.eta_max*100.0])
-        t.add_row([11, "Back-EMF constant", "mV/rpm", self.k_M/9.81*1000.0])
-        t.add_row([12, "Torque constant", "mNm/A", 1000*self.k_M])
-        t.add_row([13, "Speed/torque gradient", "rpm/mNm", self.n_0/self.M_S/1000.0])
-        t.add_row([14, "Rotor inertia", "gcm^2", self.Theta])
-        # 15 Weight g 21
-        # 16 Thermal resistance housing-ambient K/W 8
-        # 17 Thermal resistance winding-housing K/W 9.5
-        # 18 Thermal time constant motor s 354
-        # 19 Thermal time constant winding s 23
-        # 20 Operating temperature range °C -40 ~ +120
-        # 21 Thermal class of winding °C 155
-        # 22 Axial play mm 0.012
-        # 23 Radial play mm 0.08
-        # 24 Axial load dynamic N 1.5
-        # 25 Axial load static N 37
-        # 26 Radial load at 3 mm from mounting face N 12
-        # 27 No. of pole pairs 4
-        # 28 Bearings 2 ball bearings
-        # 29 Commutation Sensorless
-        # 30 Protection class IP 20
-        print(t.draw())
-
-
-    def export_to_excel(self):
-        """
-        Exports the results to excel. Uses the file name given in the member variable self.file_name
-        """
-        exWB = Workbook()
-        ws = exWB.active
-        try:
-            if self.motor_name != '':
-                ws.title = self.motor_name
-        except:
-            pass
-        ws.append(["DC Motor Calculation: " + self.motor_name])
-        ws['A1'].font=Font(size=16,bold=True)
-        ws.append(["File generated on:", "", datetime.datetime.now().strftime("%d-%b-%y"), datetime.datetime.now().strftime("%H:%M:%S")])
-        ws['A2'].font=Font(size=12,bold=True,italic=True)
-        ws['B2'].font=Font(size=12,bold=True,italic=True)
-        ws.append(["File generated by: " + APP_NAME + ", Version " + APP_VERSION])
-        ws['A3'].font=Font(size=12,bold=True,italic=True)
-        ws.append([])
-
-        row=5
-        col=1
-        titleStr = "Input data DC motor"
-        headerStr = ['', 'voltage', 'term. resist.', 'no-load cur.', 'no-load speed', 'torque const.']
-        data = [ \
-            ['unit', 'Volt', 'Ohm', 'A', 'RPM', 'mNm/A'], \
-            ['value', self.U_N, self.R, self.I_0, self.n_0, self.k_M] \
-            ]
-        row, col = self._excel_add_table_to_worksheet(ws, row, col, titleStr, headerStr, data)
-        
-        row += 1
-        col = 1
-        titleStr = "DC motor performance data"
-        headerStr = ['', 'unit', '@no-load', '@max eff.', '@max power', 'stall']
-        data = [ \
-            ['speed', 'RPM', self.n_0, self.n_meff, self.calc_n_from_M(self.M_maxpower),0], \
-            ['current', 'A', self.I_0, self.I_meff, self.calc_I_from_M(self.M_maxpower),self.I_S], \
-            ['torque', 'Nm', self.M_0, self.M_meff, self.M_maxpower,self.M_S], \
-            ['power', 'W', 0, self.P_meff, self.P_maxpower,0], \
-            ['eff.', '%', 0, self.eta_max*100.0, self.calc_eta_from_M(self.M_maxpower)*100.0,0.0] \
-            ]
-        row, col = self._excel_add_table_to_worksheet(ws, row, col, titleStr, headerStr, data)
-        if self.file_name == "":
-            if not self.motor_name:
-                self.file_name = "MotorCalc_output.xlsx"
-            else:
-                self.file_name = self.motor_name + ".xlsx"
-        exWB.save(filename=self.file_name)
-        return(row, col)
-    
-    def _excel_add_table_to_worksheet(self, ws, row, col, titleStr, headerStr, data):
-        ws.cell(row, col, value = titleStr).font = Font(size=12,bold=True)
-        row += 1
-        for hstr in headerStr:
-            ws.cell(row,col,value=hstr).font=Font(bold=True)
-            col+=1
-        row+=1
-        col=1
-
-        for dpoints in data:
-            for dp in dpoints:
-                ws.cell(row,col,value=dp)
-                if col == 1:
-                    ws.cell(row,col).font=Font(size=12, bold=True)
-
-                col+=1
-            row += 1
-            col = 1
-        return row,col 
-
 
 def Main():
     # R=1.44 (-25°C)
@@ -541,8 +421,6 @@ def Main():
     M_WP = 0.005
     dcmotor=CDCMotor(U_N=U_N, I_0=I_0, k_M=k_M, R=R, H=0.61, Theta=6.7, n_WP=n_WP, M_WP=M_WP, application="166_A / LiDAR", motor_name="BO2015_Version 10V")
     print(dcmotor)
-    dcmotor.tune_voltage_to_working_point()
-    dcmotor.list_spec_table()
  
 if __name__ == "__main__":
     Main()
