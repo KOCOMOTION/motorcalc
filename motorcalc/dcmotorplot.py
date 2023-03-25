@@ -7,7 +7,7 @@ class CDCMotorPlot():
         self.dcm = dcm
         self.dcm.calc_performance_curves()
 
-    def plotCurves(self, addVoltagesSpeed:list[float]=None):
+    def plot_curves(self, addVoltagesSpeed:list[float]=None):
         """
         Plots system values into a matplotlib graph
 
