@@ -69,7 +69,7 @@ class CDCMotor():
         Calculates the motor performance curves for a given set of parameter
     """
     def __init__(self, U_N:float=0.0, I_0:float=0.0, k_M:float=0.0, R:float=0.0, H:float=0.0, Theta:float=0.0, \
-        nPoints:int=100, n_WP:float=0.0, M_WP:float=0.0, motor_name:str='', application:str='', file_name:str='output.xlsx'):
+        nPoints:int=100, n_WP:float=0.0, M_WP:float=0.0, motor_name:str='', application:str=''):
         """
         Parameters
         ----------
@@ -95,8 +95,6 @@ class CDCMotor():
             name of the motor used for graph plotting
         application : str
             short description of application for graph plotting
-        file_name : str
-        name of Excel file for report generation
         """
         self.U_N = U_N                      # nominal Voltage in V
         self.I_0 = I_0                      # no load current in A
@@ -109,7 +107,6 @@ class CDCMotor():
         self.M_WP = M_WP                    # required torque at working point
         self.motor_name = motor_name        # motor name for text field in plot
         self.application = application      # name of application for title
-        self.file_name = file_name          # name of file for excel export
         self.gearboxes: List[CGearbox] = [] # Gearbox stages to be added with add_gearbox
         self.calc_scalar_parameter()        # calculates all other scalar motor parameter
 
