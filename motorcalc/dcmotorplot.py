@@ -3,6 +3,20 @@ import matplotlib.pyplot as plt
 import motorcalc.dcmotor as dcm
 
 class CDCMotorPlot():
+    """
+    A class used to plot a DC Motor object
+    ...
+
+    Attributes
+    ----------
+    dcm : CDCMotor
+        DC-motor object derived from motorcalc.dcmotor -> CDCMotor()
+
+    Methods
+    -------
+    plot_curves()
+        Plot the performance curve as overview
+    """
     def __init__(self, dcm:dcm.CDCMotor):
         self.dcm = dcm
         self.dcm.calc_performance_curves()
