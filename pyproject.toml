@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "motorcalc"
-version = "0.1.1"
+version = "0.1.2"
 description = "Calculation and plotting of DC motors"
 authors = ["Gerrit Kocherscheidt <kochersg@koco-group.com>"]
 license = "MIT"

@@ -131,4 +131,4 @@ dcmplt.CDCMotorPlot(m).plot_curves()
 ```
 With this command the following Matplotlib-graph is generated:
 
-![Test graph](./doc/img/performance_curve.png)
+![Test graph](https://github.com/KOCOMOTION/motorcalc/blob/master/doc/img/performance_curve.png?raw=true)
