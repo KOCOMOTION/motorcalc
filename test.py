@@ -1,5 +1,5 @@
 import motorcalc.dcmotor as dcm
-import motorcalc.dcmotorplot as dcplt
+import motorcalc.dcmotorplot as dcplts
 import numpy as np
 import matplotlib.pyplot as plt
 
