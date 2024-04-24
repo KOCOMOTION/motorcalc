@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "motorcalc"
+version = "0.2.0"
+description = "Calculation and plotting of DC motors"
+authors = ["Gerrit Kocherscheidt <kochersg@koco-group.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/KOCOMOTION/motorcalc.git"
+keywords = ["DC motor","gearbox"]
+include = ["Berechnung von Gleichstrommotoren.ipynb"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+matplotlib = "^3.7.1"
+numpy = "^1.24.2"
+openpyxl = "^3.1.2"
+texttable = "^1.6.7"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

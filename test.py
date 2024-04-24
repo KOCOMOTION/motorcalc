@@ -95,7 +95,7 @@ def E_rot(
 def calc_motor_schulung():
     m=dcm.CDCMotor(U_N=24, I_0=0.120, k_M=0.55, R=7)
     # m.list_spec_table()
-    dcplt.CDCMotorPlot(m).plotCurves()
+    dcplt.CDCMotorPlot(m).plot_curves()
 
     dt=1.0E-1       # time step for integration [s]
     w_0=0.0         # initial speed

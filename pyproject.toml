@@ -1,22 +1,29 @@
-[tool.poetry]
+[project]
 name = "motorcalc"
-version = "0.2.0"
-description = "Calculation and plotting of DC motors"
-authors = ["Gerrit Kocherscheidt <kochersg@koco-group.com>"]
-license = "MIT"
+version = "0.2.1"
+description = "Add your description here"
+authors = [
+    { name = "Gerrit Kocherscheidt", email = "kochersg@koco-group.com" }
+]
+dependencies = [
+    "matplotlib>=3.8.4",
+    "numpy>=1.26.4",
+    "openpyxl>=3.1.2",
+    "texttable>=1.7.0",
+]
 readme = "README.md"
-repository = "https://github.com/KOCOMOTION/motorcalc.git"
-keywords = ["DC motor","gearbox"]
-include = ["Berechnung von Gleichstrommotoren.ipynb"]
-
-[tool.poetry.dependencies]
-python = "^3.11"
-matplotlib = "^3.7.1"
-numpy = "^1.24.2"
-openpyxl = "^3.1.2"
-texttable = "^1.6.7"
-
+requires-python = ">= 3.8"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/motorcalc", "src/physics"]
