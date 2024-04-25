@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 import numpy as np
 
-class SwingateType(Enum):
+class SwingGateType(Enum):
     O_shape = 1
     O_shape_hollow = 2
     sandwich = 3
@@ -17,8 +17,8 @@ class Material():
     emodule: float = None #kN/mm^2 (GPa)
 
 @dataclass
-class Swingate():
-    """Class to store the different Swingate geometries and materials"""
+class SwingGate():
+    """Class to store the different SWINGgate geometries and materials"""
     name: str
     sg_type: int
     material: Material
@@ -37,9 +37,9 @@ almg3 = Material(name='Aluminum', density=2680, emodule=70)
 pmma = Material(name='Polymethlymetacrylat', density=1190)
 brass = Material(name='Brass', density=8500, emodule=100)
 
-sandwich = Swingate(
+sandwich = SwingGate(
     name='Sandwich Alu-PMMA-Alu', 
-    sg_type=SwingateType.sandwich, 
+    sg_type=SwingGateType.sandwich, 
     material=almg3, 
     material_2=pmma, 
     ri=0.5, 
