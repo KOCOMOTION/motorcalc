@@ -132,3 +132,6 @@ dcmplt.CDCMotorPlot(m).plot_curves()
 With this command the following Matplotlib-graph is generated:
 
 ![Test graph](https://github.com/KOCOMOTION/motorcalc/blob/master/doc/img/performance_curve.png?raw=true)
+
+## To-Do: Description of the motorcalc.physics module
+This module shall be used to store material parameter und formulas for mechanical and electrical calculations needed for a motor project calculation
